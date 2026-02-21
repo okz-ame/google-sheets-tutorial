@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Googleスプレッドシート・マスター道場</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
+        body { font-family: 'Inter', 'Noto Sans JP', sans-serif; }
+        .cursor-cell { cursor: cell; }
+        .focus-ring { outline: none; ring: 2px solid #3b82f6; }
+        /* Tooltip style */
+        .group:hover .group-hover\:opacity-100 { opacity: 1; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- Icon Component (Inline SVG for maximum reliability) ---
+        const Icon = ({ name, className = "w-5 h-5" }) => {
+            const icons = {
+                spreadsheet: <><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></>,
+                book: <><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></>,
+                check: <polyline points="20 6 9 17 4 12"/>,
+                alert: <><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></>,
+                copy: <><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></>,
+                calculator: <><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="16" y1="14" x2="16" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></>,
+                grid: <><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></>,
+                lock: <><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></>,
+                unlock: <><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></>,
+                search: <><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>,
+                type: <><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></>,
+                binary: <><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M7 16V8"/><path d="M10 8h4v8h-4z"/></>,
+                reset: <><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><polyline points="3 3 3 8 8 8"/></>,
+                send: <><line x1="22" y1="2" x2="11" y2="13"/><polyline points="22 2 15 22 11 13 2 9 22 2"/></>,
+                info: <><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></>,
+                lightbulb: <><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7z"/></>,
+                pointer: <><path d="m3 3 7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="m13 13 6 6"/></>,
+                "arrow-left": <><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></>,
+                "arrow-right": <><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></>,
+                clipboard: <><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></>
+            };
+            return (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                    {icons[name] || <circle cx="12" cy="12" r="10" />}
+                </svg>
+            );
+        };
+
+        const BASE_DATA = {
+            'A1': 'ID', 'B1': '金額', 'C1': 'スコア', 'D1': '判定', 'E1': '合格数', 'F1': '商品名', 'G1': '合計/計算',
+            'A2': '101', 'B2': '1500', 'C2': '85', 'D2': '', 
+            'A3': '102', 'B3': '2000', 'C3': '60', 'D3': '不合格',
+            'A4': '103', 'B4': '3500', 'C4': '90', 'D4': '合格',
+            'H1': 'マスタID', 'I1': '商品名マスタ', 'J1': '税率',
+            'H2': '101', 'I2': 'リンゴ', 'J2': '0.1', 
+            'H3': '102', 'I3': 'バナナ',
+            'H4': '103', 'I4': 'ミカン',
+        };
+
+        const LESSONS = [
+            {
+                id: 'basics',
+                title: '1. データ管理の基本',
+                description: '数値とテキストの扱いの違いを学びます。',
+                icon: "type",
+                initialGrid: { ...BASE_DATA, 'B2': '', 'B3': '' },
+                content: {
+                    instruction: "B2セルに半角で『1500』を、B3セルに『未定』と入力してみましょう。入力が終わったら「回答をチェック」ボタンを押してください。",
+                    targets: [{ cell: 'B2', value: '1500' }, { cell: 'B3', value: '未定' }],
+                    successMessage: "素晴らしい！スプレッドシートは自動的に『計算できる数値（右寄せ）』と『ただの文字（左寄せ）』を区別します。数字は必ず半角で打つのが鉄則です。",
+                    hint: "B2に1500、B3に未定と入力。Enterキーで確定を忘れずに！",
+                    footerAdvice: [
+                        { title: "「単位」は絶対に入れない", desc: "「1500円」と打つと計算ができなくなります。円などの単位は『表示形式』で設定しましょう。", icon: "alert" },
+                        { title: "配置でわかるデータ型", desc: "右に寄れば『数値』、左に寄れば『文字列』。意図せず左に寄っていたら全角数字を疑いましょう。", icon: "info" }
+                    ]
+                }
+            },
+            {
+                id: 'formatting',
+                title: '2. 書式崩れを防ぐ貼り付け',
+                description: '見た目を壊さずにデータだけを移します。',
+                icon: "copy",
+                initialGrid: { ...BASE_DATA, 'B2': '1500', 'B3': '未定' },
+                content: {
+                    instruction: "C2の値をコピー（Ctrl+C）して、オレンジ枠のC3に『値のみ貼り付け』をしてください。\n通常の貼り付けをして書式を壊してしまった場合は、リセットしてやり直しましょう。",
+                    isPasteChallenge: true,
+                    targets: [{ cell: 'C3', value: '85' }],
+                    successMessage: "完璧です！『値のみ貼り付け』は実務で最も使う機能です。表を汚さずに数字だけを移したい時に使いましょう。",
+                    hint: "C2をコピーし、C3を選択して「値のみ貼り付け」ボタンを押してください。",
+                    footerAdvice: [
+                        { title: "通常の貼り付けの罠", desc: "Ctrl+Vは色や枠線も持ってきてしまいます。これが表がグチャグチャになる最大の原因です。", icon: "copy" },
+                        { title: "ショートカット", desc: "Ctrl + Shift + V でマウスを使わずに『値のみ貼り付け』ができます。", icon: "lightbulb" }
+                    ]
+                }
+            },
+            {
+                id: 'func-intro',
+                title: '3. 関数の基本：＝（イコール）',
+                description: 'すべての計算はここから始まります。',
+                icon: "calculator",
+                initialGrid: { ...BASE_DATA, 'B2': '1500', 'B3': '未定', 'C3': '85' },
+                content: {
+                    instruction: "D2セルに『=C2』と入力してください。セル名を書くことで、その場所の値を参照できます。",
+                    targetFormula: '=C2',
+                    targetCell: 'D2',
+                    successMessage: "大正解！最初に『=』を入れることで「計算モード」になります。セル名（C2）を打てば、元の値が変わるとここも自動更新されます。",
+                    hint: "D2に『=C2』と入力。もし『C2』とだけ出たら、先頭に = があるか確認！",
+                    footerAdvice: [
+                        { title: "セル参照のメリット", desc: "数値を直接打たず参照すると、ミスが減り変更にも強くなります。これが自動化の第一歩です。", icon: "calculator" }
+                    ]
+                }
+            },
+            {
+                id: 'func-text',
+                title: '4. 文字を扱うルール：""',
+                description: '関数の中で文字を使う時のルール。',
+                icon: "type",
+                initialGrid: { ...BASE_DATA, 'B2': '1500', 'B3': '未定', 'C3': '85', 'D2': '=C2' },
+                content: {
+                    instruction: "関数内で「文字」を表示させたい時は前後を『\"』で囲みます。\nD2セルを書き換えて『=\"合格\"』と入力してみましょう。",
+                    targetFormula: '="合格"',
+                    targetCell: 'D2',
+                    successMessage: "正解です！囲まないとスプレッドシートは「合格」を命令（関数）だと勘違いしエラーを出してしまいます。文字は必ず \"\" で挟みます。",
+                    hint: "D2に『=\"合格\"』と入力。\" は Shift + 2 で入力できます。",
+                    footerAdvice: [
+                        { title: "#NAME? エラーの正体", desc: "文字の囲み忘れや関数名の打ち間違いで発生します。シートが「名前がわからないよ！」と言っている状態です。", icon: "alert" }
+                    ]
+                }
+            },
+            {
+                id: 'func-range',
+                title: '5. 範囲指定：：（コロン）',
+                description: '複数のセルを一気に計算する方法。',
+                icon: "grid",
+                initialGrid: { ...BASE_DATA, 'B2': '1500', 'B3': '2000', 'C3': '85', 'D2': '合格' },
+                content: {
+                    instruction: "B6セルに、B2からB4までの合計を出す『=SUM(B2:B4)』を入力してください。\nコロン（：）は『〜から〜まで』という意味になります。",
+                    targetFormula: '=SUM(B2:B4)',
+                    targetCell: 'B6',
+                    successMessage: "正解です！一個ずつ足すよりSUM関数で範囲指定する方がミスもありません。100行あっても一瞬で計算できます。",
+                    hint: "B6に『=SUM(B2:B4)』を入力。カッコを閉じ忘れないように注意！",
+                    syntax: {
+                        name: "SUM関数の基本",
+                        formula: "=SUM( 開始セル : 終了セル )",
+                        details: [
+                            { label: "SUM", desc: "合計せよという命令" },
+                            { label: "：", desc: "「〜から〜まで」を表す記号" }
+                        ]
+                    },
+                    footerAdvice: [
+                        { title: "：の意味", desc: "マウスでドラッグ選択しても、自動的にこの形式で入力されます。", icon: "grid" }
+                    ]
+                }
+            },
+            {
+                id: 'func-relative-fail',
+                title: '6. 相対参照の罠（ズレの体験）',
+                description: 'なぜ計算が壊れるのか、理由を体験します。',
+                icon: "unlock",
+                initialGrid: { ...BASE_DATA, 'B2': '1500', 'B3': '2000', 'B6': '7000', 'G2': '' },
+                content: {
+                    instruction: "まずG2に『=B2*J2』と入力（金額×税率）。次にG2をコピーしてG3に貼り付けてください。\nG3を『ダブルクリック』か『F2キー』で開いて、式がどう変わったか確認してから判定してください。",
+                    targetCell: 'G3',
+                    targetFormula: '=B3*J3', 
+                    successMessage: "ズレましたね！G3の式を見ると『=B3*J3』になっています。1行下にコピーしたせいで、税率(J2)まで1行下の空セル(J3)にズレてしまったのです。",
+                    hint: "G2に =B2*J2 と打ち、コピーしてG3へ。ズレた式（=B3*J3）をF2キーで確認して回答チェック！",
+                    footerAdvice: [
+                        { title: "編集モードの開き方", desc: "セルの中身を見たい時は、ダブルクリックするか選択して F2キー を押します。", icon: "pointer" },
+                        { title: "ズレるのが「普通」", desc: "コピーすると相対的な位置関係が維持されます。これが便利な時も多いですが、今回のような固定値には向きません。", icon: "info" }
+                    ]
+                }
+            },
+            {
+                id: 'func-absolute',
+                title: '7. 絶対参照：＄で固定する',
+                description: 'コピーしても壊れない数式の作り方を学びます。',
+                icon: "lock",
+                initialGrid: { ...BASE_DATA, 'G2': '=B2*J2', 'G3': '=B3*J3' },
+                content: {
+                    instruction: "G2の式を『=B2*$J$2』に書き直してください。$記号は「固定」という意味です。\nその後、再度G2をコピーしてG3に貼り付けてみましょう。",
+                    targetCell: 'G3',
+                    targetFormula: '=B3*$J$2', 
+                    successMessage: "完璧！G3を開いても税率の場所は『$J$2』のまま固定されています。オートフィルを使っても計算が壊れません。これが「絶対参照」です。",
+                    hint: "G2を =B2*$J$2 に修正して、G3に貼り付け。$記号を忘れずに！",
+                    footerAdvice: [
+                        { title: "F4キーの魔法", desc: "J2と入力した直後に F4キー を叩くと、自動で $ がつきます。時短必須テクニックです。", icon: "lightbulb" }
+                    ]
+                }
+            },
+            {
+                id: 'func-mixed',
+                title: '8. 応用：複合参照の違い',
+                description: '$をつける場所によって「列」か「行」かを選んで固定できます。',
+                icon: "grid",
+                content: {
+                    instruction: "下の解説パネルを読んで、$記号の場所による効果の違いを理解しましょう。\n確認できたら「理解しました！」を押してください。",
+                    isTutorialStep: true,
+                    successMessage: "片方だけ固定できると『九九の表』のような高度な表が一つの式で作れるようになります。",
+                    hint: "解説パネルを読んでボタンを押して進もう！",
+                    syntax: {
+                        name: "$記号の位置と効果",
+                        formula: "$A$1 / $A1 / A$1",
+                        details: [
+                            { label: "$A$1", desc: "【絶対参照】縦横どこにコピーしても完全に固定" },
+                            { label: "$A1", desc: "【列固定】横移動してもA列のまま、縦には動く" },
+                            { label: "A$1", desc: "【行固定】縦移動しても1行目のまま、横には動く" }
+                        ]
+                    },
+                    footerAdvice: [
+                        { title: "動かしたくない方に $", desc: "$AならA列固定、$1なら1行目固定。壁を作るイメージです。", icon: "info" }
+                    ]
+                }
+            },
+            {
+                id: 'func-logic',
+                title: '9. 比較演算子：判定基準',
+                description: '条件を教えるための記号を学びます。',
+                icon: "binary",
+                initialGrid: { ...BASE_DATA, 'D2': '' },
+                content: {
+                    instruction: "D2セルに、スコア(C2)が80以上かを判定する式『=C2>=80』を入力してください。",
+                    targetFormula: '=C2>=80',
+                    targetCell: 'D2',
+                    successMessage: "正解！『>=』は『以上』を表します。正しい時は TRUE、違う時は FALSE と表示されます。IF関数はこの結果を裏で見ています。",
+                    hint: "D2に『=C2>=80』と入力。記号の向きに注意（= は常に右側です）。",
+                    syntax: {
+                        name: "主な比較演算子一覧",
+                        formula: "A1 >= 80",
+                        details: [
+                            { label: ">=", desc: "以上" },
+                            { label: ">", desc: "より大きい" },
+                            { label: "<=", desc: "以下" },
+                            { label: "<", desc: "未満" },
+                            { label: "=", desc: "等しい" },
+                            { label: "<>", desc: "等しくない" }
+                        ]
+                    }
+                }
+            },
+            {
+                id: 'func-if',
+                title: '10. IF関数：条件分岐',
+                description: '表示を自動で切り替える重要関数。',
+                icon: "info",
+                initialGrid: { ...BASE_DATA, 'D2': '' },
+                content: {
+                    instruction: "D2に、C2が80以上なら \"合格\"、そうでなければ \"不合格\" と出す式を書きましょう。",
+                    targetFormula: '=IF(C2>=80,"合格","不合格")',
+                    targetCell: 'D2',
+                    successMessage: "完璧です！IF関数は（条件、真、偽）の3要素でできています。事務作業の自動化に必須です。",
+                    hint: '=IF(C2>=80,"合格","不合格") と入力。カンマは半角「,」を使ってね！',
+                    syntax: {
+                        name: "IF関数の構文",
+                        formula: "=IF( 条件式 , 真の場合 , 偽の場合 )",
+                        details: [
+                            { label: "真の場合", desc: "条件が正しい（TRUE）時の表示" },
+                            { label: "偽の場合", desc: "条件が違う（FALSE）時の表示" }
+                        ]
+                    }
+                }
+            },
+            {
+                id: 'func-countif',
+                title: '11. COUNTIF関数：集計',
+                description: '特定の文字だけを数える関数。',
+                icon: "hash",
+                initialGrid: { ...BASE_DATA, 'D2': '合格', 'D3': '不合格', 'D4': '合格', 'E5': '' },
+                content: {
+                    instruction: "E5に判定(D2:D4)の中の「合格」の数を数える式を入力してください。",
+                    targetFormula: '=COUNTIF(D2:D4,"合格")',
+                    targetCell: 'E5',
+                    successMessage: "バッチリです！何百行もの名簿から特定の文字だけを数えたい時に非常に重宝します。",
+                    hint: '=COUNTIF(D2:D4,"合格")。範囲の後のカンマを忘れずに。',
+                    syntax: {
+                        name: "COUNTIF関数の構文",
+                        formula: "=COUNTIF( 範囲 , 条件 )",
+                        details: [
+                            { label: "範囲", desc: "調べたいセルの塊" },
+                            { label: "条件", desc: "数えたい内容" }
+                        ]
+                    }
+                }
+            },
+            {
+                id: 'func-vlookup',
+                title: '12. VLOOKUP関数：検索',
+                description: 'マスタから自動で情報を引く最強関数。',
+                icon: "search",
+                initialGrid: { ...BASE_DATA, 'A2': '101', 'F2': '' },
+                content: {
+                    instruction: "F2に、ID(A2)を使ってマスタ表(H2:I4)から「商品名」を検索して表示させてください。",
+                    targetFormula: '=VLOOKUP(A2,H2:I4,2,FALSE)',
+                    targetCell: 'F2',
+                    successMessage: "おめでとうございます！VLOOKUPまでマスターすれば、実務で『スプレッドシートが使えます』と胸を張れます！",
+                    hint: '=VLOOKUP(A2,H2:I4,2,FALSE) と入力。最後は基本FALSEです。',
+                    syntax: {
+                        name: "VLOOKUP関数の構文",
+                        formula: "=VLOOKUP( 検索値 , 範囲 , 列番号 , FALSE )",
+                        details: [
+                            { label: "検索値", desc: "探す手がかり" },
+                            { label: "列番号", desc: "何番目の列を出すか（今回は2）" }
+                        ]
+                    }
+                }
+            }
+        ];
+
+        const App = () => {
+            const [currentLessonIdx, setCurrentLessonIdx] = useState(0);
+            const [gridData, setGridData] = useState({});
+            const [cellFormats, setCellFormats] = useState({});
+            const [activeCell, setActiveCell] = useState('B2');
+            const [isEditing, setIsEditing] = useState(false);
+            const [editValue, setEditValue] = useState('');
+            const [clipboard, setClipboard] = useState(null);
+            const [feedback, setFeedback] = useState({ type: '', message: '' });
+            const [progress, setProgress] = useState([]);
+            const [showSubmit, setShowSubmit] = useState(true);
+            
+            const inputRef = useRef(null);
+            const containerRef = useRef(null);
+            const lesson = LESSONS[currentLessonIdx];
+
+            const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+            const rows = [1, 2, 3, 4, 5, 6];
+
+            const loadLessonState = (idx) => {
+                const l = LESSONS[idx];
+                setGridData({ ...l.initialGrid });
+                setCellFormats({ 'C3': 'special-target' });
+                setFeedback({ type: '', message: '' });
+                setShowSubmit(idx !== 7); // Tutorial step doesn't show submit initially
+                if (l.content.targets && l.content.targets.length > 0) setActiveCell(l.content.targets[0].cell);
+                else if (l.content.targetCell) setActiveCell(l.content.targetCell);
+            };
+
+            useEffect(() => { loadLessonState(0); }, []);
+
+            useEffect(() => {
+                if (isEditing && inputRef.current) {
+                    inputRef.current.focus();
+                    inputRef.current.select();
+                }
+            }, [isEditing]);
+
+            const shiftFormula = (formula, rowOffset, colOffset) => {
+                if (!formula || !formula.startsWith('=')) return formula;
+                return formula.replace(/(\$?)([A-Z]+)(\$?)(\d+)/g, (match, colLock, colName, rowLock, rowNum) => {
+                    let newCol = colName;
+                    let newRow = rowNum;
+                    if (!rowLock) newRow = parseInt(rowNum) + rowOffset;
+                    if (!colLock) {
+                        const colIdx = cols.indexOf(colName);
+                        if (colIdx !== -1) {
+                            const newIdx = Math.max(0, Math.min(cols.length - 1, colIdx + colOffset));
+                            newCol = cols[newIdx];
+                        }
+                    }
+                    return (colLock ? '$' : '') + newCol + (rowLock ? '$' : '') + newRow;
+                });
+            };
+
+            const evaluateFormula = (input, currentGrid) => {
+                if (!input || !input.startsWith('=')) return { value: input, error: null };
+                const formula = input.substring(1).trim().toUpperCase();
+                const normalizedInput = input.replace(/\s/g, '').toUpperCase();
+                
+                if (formula === 'C2') return { value: currentGrid['C2'] || '0', error: null };
+                if (input.startsWith('="') && input.endsWith('"')) return { value: input.slice(2, -1), error: null };
+                
+                if (normalizedInput === '=SUM(B2:B4)') {
+                    const sum = (parseFloat(currentGrid['B2']) || 0) + (parseFloat(currentGrid['B3']) || 0) + (parseFloat(currentGrid['B4']) || 0);
+                    return { value: sum.toString(), error: null };
+                }
+                
+                if (normalizedInput.includes('*')) {
+                    if (normalizedInput === '=B2*J2' || normalizedInput === '=B2*$J$2') return { value: '150', error: null };
+                    if (normalizedInput === '=B3*J3') return { value: '0', error: '参照先J3が空です' };
+                    if (normalizedInput === '=B3*$J$2') return { value: '200', error: null };
+                }
+                
+                if (formula.includes('>=') || formula.includes('<=') || formula.includes('>') || formula.includes('<')) {
+                    if (input.includes('=>') || input.includes('=<')) return { value: '#ERROR!', error: '演算子の向きが違います' };
+                    const score = parseFloat(currentGrid['C2']);
+                    if (formula.startsWith('C2>=')) return { value: (score >= 80).toString().toUpperCase(), error: null };
+                }
+                
+                if (formula.startsWith('IF(')) {
+                    if (!input.includes('"')) return { value: '#NAME?', error: '文字は "" で囲む必要があります' };
+                    if (normalizedInput === '=IF(C2>=80,"合格","不合格")') return { value: '合格', error: null };
+                    return { value: '#VALUE!', error: '引数が正しくありません' };
+                }
+                
+                if (formula.startsWith('COUNTIF(')) {
+                    if (normalizedInput === '=COUNTIF(D2:D4,"合格")') return { value: '2', error: null };
+                    return { value: '#VALUE!', error: '範囲または条件が違います' };
+                }
+                
+                if (formula.startsWith('VLOOKUP(')) {
+                    if (normalizedInput === '=VLOOKUP(A2,H2:I4,2,FALSE)') {
+                        if (currentGrid['A2'] === '101') return { value: 'リンゴ', error: null };
+                        if (currentGrid['A2'] === '102') return { value: 'バナナ', error: null };
+                    }
+                    return { value: '#N/A', error: '指定した範囲に値がありません' };
+                }
+                
+                if (/^[A-Zぁ-んァ-ヶー一-龠]+$/.test(formula) && !['C2', 'B2', 'J2', 'A2'].includes(formula)) return { value: '#NAME?', error: '未知の名前です' };
+                return { value: '#ERROR!', error: '数式を解釈できません' };
+            };
+
+            const getDisplayValue = (id) => {
+                const rawValue = gridData[id];
+                if (!rawValue) return '';
+                const result = evaluateFormula(rawValue, gridData);
+                return result.value;
+            };
+
+            const handleSubmitJudge = () => {
+                const normalizedInput = (cell) => (gridData[cell] || '').replace(/\s/g, '').toUpperCase();
+                let isCorrect = false;
+
+                if (lesson.id === 'formatting') {
+                    isCorrect = String(gridData['C3'] || '') === '85' && cellFormats['C3'] === 'special-target';
+                } else if (lesson.content.targets) {
+                    isCorrect = lesson.content.targets.every(t => String(gridData[t.cell] || '') === t.value);
+                } else if (lesson.content.targetFormula) {
+                    const target = lesson.content.targetFormula.replace(/\s/g, '').toUpperCase();
+                    isCorrect = normalizedInput(lesson.content.targetCell) === target;
+                }
+
+                if (isCorrect) {
+                    setFeedback({ type: 'success', message: lesson.content.successMessage });
+                    if (!progress.includes(lesson.id)) setProgress([...progress, lesson.id]);
+                    setShowSubmit(false);
+                } else {
+                    setFeedback({ type: 'error', message: '入力を確認してもう一度試しましょう。ヒントも参考にしてください。' });
+                }
+            };
+
+            const commitEdit = () => {
+                if (!isEditing) return;
+                setGridData(prev => ({ ...prev, [activeCell]: editValue }));
+                setIsEditing(false);
+                if (feedback.type === 'error') setFeedback({ type: '', message: '' });
+            };
+
+            const handleCellClick = (id) => {
+                if (id === activeCell) { setIsEditing(true); setEditValue(gridData[id] || ''); }
+                else { if (isEditing) commitEdit(); setActiveCell(id); setIsEditing(false); }
+            };
+
+            const handleKeyDown = (e) => {
+                if (isEditing) {
+                    if (e.key === 'Enter') { commitEdit(); e.preventDefault(); }
+                    else if (e.key === 'Escape') { setIsEditing(false); setEditValue(gridData[activeCell] || ''); }
+                    return;
+                }
+                
+                if (e.ctrlKey || e.metaKey) {
+                    if (e.key === 'c') { handleCopy(); e.preventDefault(); }
+                    if (e.key === 'v') {
+                        if (e.shiftKey) handlePasteSpecial();
+                        else handleNormalPaste();
+                        e.preventDefault();
+                    }
+                }
+                
+                if (e.key === 'F2') { setIsEditing(true); setEditValue(gridData[activeCell] || ''); e.preventDefault(); }
+                
+                const colIdx = cols.indexOf(activeCell[0]);
+                const rowIdx = parseInt(activeCell.substring(1));
+                switch (e.key) {
+                    case 'Enter': setIsEditing(true); setEditValue(gridData[activeCell] || ''); e.preventDefault(); break;
+                    case 'ArrowUp': if (rowIdx > 1) setActiveCell(`${cols[colIdx]}${rowIdx - 1}`); e.preventDefault(); break;
+                    case 'ArrowDown': if (rowIdx < rows.length) setActiveCell(`${cols[colIdx]}${rowIdx + 1}`); e.preventDefault(); break;
+                    case 'ArrowLeft': if (colIdx > 0) setActiveCell(`${cols[colIdx - 1]}${rowIdx}`); e.preventDefault(); break;
+                    case 'ArrowRight': if (colIdx < cols.length - 1) setActiveCell(`${cols[colIdx + 1]}${rowIdx}`); e.preventDefault(); break;
+                    case 'Backspace': setGridData(prev => ({ ...prev, [activeCell]: '' })); break;
+                    default: if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) { setIsEditing(true); setEditValue(e.key); }
+                }
+            };
+
+            const handleCopy = () => {
+                setClipboard({ cell: activeCell, value: gridData[activeCell], format: activeCell === 'C2' ? 'conditional-green' : null });
+                setFeedback({ type: 'info', message: `${activeCell}をコピーしました。Ctrl+Vで貼り付けできます。` });
+            };
+
+            const handleNormalPaste = () => {
+                if (!clipboard) return;
+                const sCol = cols.indexOf(clipboard.cell[0]);
+                const sRow = parseInt(clipboard.cell.substring(1));
+                const tCol = cols.indexOf(activeCell[0]);
+                const tRow = parseInt(activeCell.substring(1));
+                const shiftedValue = shiftFormula(clipboard.value, tRow - sRow, tCol - sCol);
+                setGridData(prev => ({ ...prev, [activeCell]: shiftedValue }));
+                setCellFormats(prev => ({ ...prev, [activeCell]: clipboard.format }));
+                if (lesson.id === 'formatting' && activeCell === 'C3') {
+                    setFeedback({ type: 'error', message: '通常の貼り付けをしたため、書式（オレンジの枠）が崩れました！リセットして「値のみ貼り付け」を試してください。' });
+                }
+            };
+
+            const handlePasteSpecial = () => {
+                if (!clipboard) return;
+                setGridData(prev => ({ ...prev, [activeCell]: clipboard.value }));
+                setFeedback({ type: 'info', message: '値のみを貼り付けました。' });
+            };
+
+            const getCellStyles = (id) => {
+                let styles = "border p-0 min-w-[100px] h-10 relative cursor-cell text-sm transition-all ";
+                if (activeCell === id && !isEditing) styles += "ring-2 ring-blue-500 z-10 bg-blue-50/30 ";
+                else styles += "bg-white hover:bg-slate-50 ";
+                
+                const displayVal = getDisplayValue(id);
+                const format = cellFormats[id];
+                const isHeader = parseInt(id.substring(1)) === 1;
+                
+                if (isHeader) styles += "bg-slate-100 font-bold text-center text-slate-500 border-slate-200 ";
+                if (id.startsWith('H') || id.startsWith('I') || id.startsWith('J')) styles += "border-l-2 border-slate-300 ";
+                
+                if (!isHeader) {
+                    if (id === 'C2' || format === 'conditional-green') {
+                        const val = getDisplayValue(id);
+                        if (!isNaN(val) && parseFloat(val) >= 80) styles += "bg-green-100 text-green-800 font-bold ";
+                    }
+                    if (format === 'special-target') styles += "bg-orange-50 text-orange-900 border-2 border-orange-400 ring-1 ring-orange-200 ring-inset ";
+                    if (String(displayVal).startsWith('#')) styles += "text-red-500 font-bold ";
+                }
+                return styles;
+            };
+
+            return (
+                <div ref={containerRef} className="flex flex-col h-screen bg-slate-50 text-slate-900 font-sans select-none outline-none" onKeyDown={handleKeyDown} tabIndex="0">
+                    <header className="bg-white border-b px-6 py-4 flex items-center justify-between shadow-sm z-20">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-green-600 p-2 rounded-lg text-white shadow-md shadow-green-100">
+                                <Icon name="spreadsheet" className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h1 className="text-xl font-bold tracking-tight">スプレッドシート・マスター道場</h1>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Training Edition v4.2</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-6">
+                            <div className="w-40 h-1.5 bg-slate-100 rounded-full overflow-hidden border">
+                                <div className="h-full bg-green-500 transition-all duration-700" style={{ width: `${(progress.length / LESSONS.length) * 100}%` }}></div>
+                            </div>
+                        </div>
+                    </header>
+
+                    <div className="flex flex-1 overflow-hidden">
+                        <nav className="w-72 bg-white border-r overflow-y-auto hidden lg:block shadow-sm">
+                            <div className="p-4 border-b bg-slate-50/50"><h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">カリキュラム (全12ステップ)</h2></div>
+                            {LESSONS.map((l, idx) => (
+                                <button key={l.id} onClick={() => { setCurrentLessonIdx(idx); loadLessonState(idx); }} className={`w-full flex items-start gap-3 p-4 text-left border-b transition-all ${currentLessonIdx === idx ? 'bg-blue-50/50 border-r-4 border-r-blue-600' : 'hover:bg-slate-50'}`}>
+                                    <div className={`mt-1 p-2 rounded-lg ${progress.includes(l.id) ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'}`}>
+                                        <Icon name={progress.includes(l.id) ? "check" : l.icon} className="w-4 h-4" />
+                                    </div>
+                                    <div className="flex-1 overflow-hidden"><div className={`text-sm font-bold truncate ${currentLessonIdx === idx ? 'text-blue-700' : 'text-slate-700'}`}>{l.title}</div><p className="text-xs text-slate-500 mt-0.5 truncate">{l.description}</p></div>
+                                </button>
+                            ))}
+                        </nav>
+
+                        <main className="flex-1 flex flex-col p-6 overflow-y-auto gap-6 bg-slate-50/30">
+                            <div className="max-w-5xl mx-auto w-full space-y-6">
+                                
+                                {/* 1. Instruction Card */}
+                                <div className="bg-white rounded-3xl shadow-xl border border-white p-8 relative overflow-hidden">
+                                    <div className="flex items-start gap-5 relative z-10">
+                                        <div className="bg-blue-600 p-3 rounded-2xl text-white shadow-lg shadow-blue-200">
+                                            <Icon name={lesson.icon} className="w-6 h-6" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <h2 className="text-xl font-black text-slate-800"><span className="text-blue-600 mr-2">Step {currentLessonIdx + 1}</span> {lesson.title}</h2>
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => { if (currentLessonIdx > 0) { const newIdx = currentLessonIdx - 1; setCurrentLessonIdx(newIdx); loadLessonState(newIdx); } }} disabled={currentLessonIdx === 0} className="p-2 rounded-lg border text-xs font-bold hover:bg-slate-50 disabled:opacity-30 transition-all">
+                                                        <Icon name="arrow-left" className="w-3 h-3" />
+                                                    </button>
+                                                    <button onClick={() => loadLessonState(currentLessonIdx)} className="p-2 rounded-lg border text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all">
+                                                        <Icon name="reset" className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <p className="text-slate-600 text-lg leading-relaxed font-medium mb-4 whitespace-pre-wrap">{lesson.content.instruction}</p>
+                                            <div className="flex flex-wrap gap-3 mb-2">
+                                                {showSubmit && !lesson.content.isTutorialStep && (
+                                                    <button onClick={handleSubmitJudge} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl text-sm font-black hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all active:scale-95 flex items-center gap-2">
+                                                        <Icon name="send" className="w-4 h-4" /> 回答をチェック
+                                                    </button>
+                                                )}
+                                                {lesson.content.isTutorialStep && !progress.includes(lesson.id) && (
+                                                    <button onClick={() => { setProgress([...progress, lesson.id]); setFeedback({type: 'success', message: lesson.content.successMessage}); setShowSubmit(false); }} className="bg-green-600 text-white px-6 py-2.5 rounded-xl text-sm font-black hover:bg-green-700 shadow-lg shadow-green-200 transition-all active:scale-95">理解しました！</button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {feedback.message && (
+                                        <div className={`mt-4 p-5 rounded-2xl flex items-center gap-4 animate-in zoom-in-95 ${feedback.type === 'success' ? 'bg-green-50 text-green-800 border-2 border-green-100' : feedback.type === 'error' ? 'bg-red-50 text-red-800 border-2 border-red-100' : 'bg-blue-50 text-blue-800 border-2 border-blue-100'}`}>
+                                            <Icon name={feedback.type === "success" ? "check" : "alert"} className={`w-6 h-6 ${feedback.type === "success" ? "text-green-500" : "text-red-400"}`} />
+                                            <span className="text-base font-bold flex-1">{feedback.message}</span>
+                                            {feedback.type === 'success' && currentLessonIdx < LESSONS.length - 1 && (<button onClick={() => { const newIdx = currentLessonIdx + 1; setCurrentLessonIdx(newIdx); loadLessonState(newIdx); }} className="bg-green-600 text-white px-6 py-2 rounded-xl text-sm font-black hover:bg-green-700 shadow-lg shadow-green-200 transition-all">次へ進む <Icon name="arrow-right" className="w-4 h-4 ml-1" /></button>)}
+                                        </div>
+                                    )}
+                                    <div className="mt-6 pt-6 border-t flex items-center justify-between">
+                                        <div className="flex gap-3">
+                                            <button onClick={handleCopy} className="flex items-center gap-2 px-5 py-2.5 bg-white border rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 shadow-sm transition-all"><Icon name="copy" className="w-4 h-4" /> コピー</button>
+                                            <button onClick={handleNormalPaste} className="flex items-center gap-2 px-5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-200 transition-all">貼り付け</button>
+                                            <button onClick={handlePasteSpecial} className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 border border-blue-700 rounded-xl text-sm font-black text-white hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all"><Icon name="clipboard" className="w-4 h-4" /> 値のみ貼り付け</button>
+                                        </div>
+                                        <div className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-full flex items-center gap-2">
+                                            <Icon name="info" className="w-3.5 h-3.5" /> ヒント: {lesson.content.hint}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* 2. Explanation / Advice Panels (ABOVE SHEET) */}
+                                <div className="space-y-6">
+                                    {lesson.content.syntax && (
+                                        <div className="bg-white border rounded-3xl p-6 border-blue-100 shadow-sm animate-in fade-in">
+                                            <h3 className="text-sm font-bold text-blue-700 mb-4 flex items-center gap-2"><Icon name="book" className="w-5 h-5" /> {lesson.content.syntax.name}</h3>
+                                            <div className="bg-slate-900 p-4 rounded-xl font-mono text-lg text-green-400 mb-4 shadow-inner">{lesson.content.syntax.formula}</div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {lesson.content.syntax.details.map((d, i) => (
+                                                    <div key={i} className="flex items-start gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                                        <span className="bg-blue-600 text-white text-[10px] font-black px-2 py-1 rounded-md uppercase shrink-0 mt-0.5">{d.label}</span>
+                                                        <span className="text-sm text-slate-700 font-medium leading-relaxed">{d.desc}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="grid md:grid-cols-2 gap-6">
+                                        {lesson.content.footerAdvice && lesson.content.footerAdvice.map((advice, i) => (
+                                            <div key={i} className={`bg-gradient-to-br border rounded-3xl p-6 shadow-sm ${i === 0 ? 'from-indigo-50 to-blue-50 border-indigo-100' : 'from-amber-50 to-orange-50 border-amber-100'}`}>
+                                                <h3 className={`font-black flex items-center gap-2 mb-3 ${i === 0 ? 'text-indigo-900' : 'text-amber-900'}`}>
+                                                    <Icon name={advice.icon} className="w-5 h-5" /> {advice.title}
+                                                </h3>
+                                                <p className={`text-xs leading-relaxed font-medium ${i === 0 ? 'text-indigo-800/80' : 'text-amber-800/80'}`}>{advice.desc}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* 3. Spreadsheet Container */}
+                                <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden mb-12">
+                                    <div className="bg-slate-50 border-b px-6 py-3 flex items-center justify-between">
+                                        <div className="flex gap-1.5"><div className="w-3 h-3 rounded-full bg-red-400"></div><div className="w-3 h-3 rounded-full bg-yellow-400"></div><div className="w-3 h-3 rounded-full bg-green-400"></div></div>
+                                        <div className="text-[10px] font-black font-mono text-slate-400 uppercase tracking-widest">Cell: <span className="text-blue-600">{activeCell}</span> | 編集: <span className="text-slate-600 italic">Enter, ダブルクリック, F2 / ショートカット: Ctrl+C, Ctrl+V, Ctrl+Shift+V対応</span></div>
+                                    </div>
+                                    <div className="overflow-x-auto overflow-y-visible">
+                                        <table className="w-full border-collapse table-fixed">
+                                            <thead><tr className="bg-slate-50/80"><th className="border p-2 text-[10px] text-slate-400 w-12 font-black border-slate-200"></th>{cols.map(c => <th key={c} className="border p-2 text-[10px] text-slate-400 font-black uppercase border-slate-200">{c}</th>)}</tr></thead>
+                                            <tbody>{rows.map(r => (<tr key={r}><td className="bg-slate-50/80 border p-2 text-[10px] text-slate-400 font-black text-center border-slate-200">{r}</td>{cols.map(c => {
+                                                const id = `${c}${r}`; 
+                                                const isEditingThis = isEditing && activeCell === id; 
+                                                const result = evaluateFormula(gridData[id] || '', gridData); 
+                                                const displayVal = result.value; 
+                                                const isNumber = !isNaN(displayVal) && displayVal !== '' && typeof displayVal !== 'boolean'; 
+                                                return (
+                                                    <td key={id} onClick={() => handleCellClick(id)} className={getCellStyles(id) + " group"}>
+                                                        {isEditingThis ? (
+                                                            <input ref={inputRef} type="text" className="w-full h-full px-2 border-none outline-none bg-white font-mono text-sm" value={editValue} onChange={(e) => setEditValue(e.target.value)} onBlur={commitEdit} />
+                                                        ) : (
+                                                            <div className={`px-2 py-2 truncate w-full h-full ${isNumber ? 'text-right' : 'text-left'}`}>
+                                                                {displayVal}
+                                                                {result.error && (<div className="absolute top-0 right-0 w-0 h-0 border-t-[6px] border-t-red-500 border-l-[6px] border-l-transparent z-10"></div>)}
+                                                                {result.error && ( 
+                                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl">
+                                                                        <p className="font-bold border-b border-slate-600 pb-1 mb-1">{result.value} エラー</p>
+                                                                        {result.error}
+                                                                    </div> 
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                        {activeCell === id && !isEditing && (<div className="absolute bottom-[-2px] right-[-2px] w-1.5 h-1.5 bg-blue-600 border border-white z-20"></div>)}
+                                                    </td>
+                                                );
+                                            })}</tr>))}</tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </main>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
