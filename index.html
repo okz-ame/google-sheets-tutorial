@@ -16,8 +16,13 @@
         body { font-family: 'Inter', 'Noto Sans JP', sans-serif; }
         .cursor-cell { cursor: cell; }
         .focus-ring { outline: none; ring: 2px solid #3b82f6; }
-        /* Tooltip style */
         .group:hover .group-hover\:opacity-100 { opacity: 1; }
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900">
@@ -26,7 +31,7 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // --- Icon Component (Inline SVG for maximum reliability) ---
+        // --- Icon Component ---
         const Icon = ({ name, className = "w-5 h-5" }) => {
             const icons = {
                 spreadsheet: <><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></>,
@@ -42,13 +47,23 @@
                 type: <><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></>,
                 binary: <><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M7 16V8"/><path d="M10 8h4v8h-4z"/></>,
                 reset: <><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><polyline points="3 3 3 8 8 8"/></>,
+                undo: <><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></>,
                 send: <><line x1="22" y1="2" x2="11" y2="13"/><polyline points="22 2 15 22 11 13 2 9 22 2"/></>,
                 info: <><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></>,
                 lightbulb: <><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7z"/></>,
                 pointer: <><path d="m3 3 7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="m13 13 6 6"/></>,
                 "arrow-left": <><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></>,
                 "arrow-right": <><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></>,
-                clipboard: <><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></>
+                clipboard: <><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></>,
+                home: <><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></>,
+                play: <><polygon points="5 3 19 12 5 21 5 3"/></>,
+                filter: <><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></>,
+                "list-checks": <><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><line x1="13" x2="21" y1="6" y2="6"/><line x1="13" x2="21" y1="18" y2="18"/></>,
+                layout: <><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" x2="21" y1="9" y2="9"/><line x1="9" x2="9" y1="21" y2="9"/></>,
+                split: <><rect width="8" height="14" x="3" y="5" rx="2" ry="2"/><rect width="8" height="14" x="13" y="5" rx="2" ry="2"/><line x1="12" x2="12" y1="3" y2="21"/></>,
+                star: <><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></>,
+                "chevron-down": <polyline points="6 9 12 15 18 9"/>,
+                close: <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>
             };
             return (
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -57,61 +72,157 @@
             );
         };
 
+        // --- Data & Lessons ---
+        const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+        const rows = Array.from({ length: 20 }, (_, i) => i + 1);
+
         const BASE_DATA = {
             'A1': 'ID', 'B1': '金額', 'C1': 'スコア', 'D1': '判定', 'E1': '合格数', 'F1': '商品名', 'G1': '合計/計算',
-            'A2': '101', 'B2': '1500', 'C2': '85', 'D2': '', 
+            'A2': '101', 'B2': '1500', 'C2': '85', 'D2': '合格', 
             'A3': '102', 'B3': '2000', 'C3': '60', 'D3': '不合格',
             'A4': '103', 'B4': '3500', 'C4': '90', 'D4': '合格',
+            'A5': '104', 'B5': '1200', 'C5': '45', 'D5': '不合格',
+            'A6': '105', 'B6': '4000', 'C6': '95', 'D6': '合格',
+            'A7': '106', 'B7': '1800', 'C7': '70', 'D7': '不合格',
+            'A8': '107', 'B8': '2500', 'C8': '80', 'D8': '合格',
+            'A9': '108', 'B9': '3200', 'C9': '88', 'D9': '合格',
+            'A10': '109', 'B10': '1500', 'C10': '40', 'D10': '不合格',
+            'A11': '110', 'B11': '2800', 'C11': '75', 'D11': '不合格',
+            'A12': '111', 'B12': '4200', 'C12': '92', 'D12': '合格',
+            'A13': '112', 'B13': '1900', 'C13': '65', 'D13': '不合格',
+            'A14': '113', 'B14': '3600', 'C14': '85', 'D14': '合格',
+            'A15': '114', 'B15': '2100', 'C15': '55', 'D15': '不合格',
+            'A16': '115', 'B16': '4500', 'C16': '98', 'D16': '合格',
             'H1': 'マスタID', 'I1': '商品名マスタ', 'J1': '税率',
             'H2': '101', 'I2': 'リンゴ', 'J2': '0.1', 
             'H3': '102', 'I3': 'バナナ',
             'H4': '103', 'I4': 'ミカン',
         };
 
+        const CHAPTERS = [
+            { id: 'ch1', title: '第1章：データ入力の鉄則' },
+            { id: 'ch2', title: '第2章：関数の基本と応用' },
+            { id: 'ch3', title: '第3章：チームで使う便利機能' }
+        ];
+
         const LESSONS = [
+            // --- 第1章：データ入力の鉄則 ---
             {
                 id: 'basics',
-                title: '1. データ管理の基本',
+                chapterId: 'ch1',
+                title: '1-1. データ管理の基本',
                 description: '数値とテキストの扱いの違いを学びます。',
                 icon: "type",
                 initialGrid: { ...BASE_DATA, 'B2': '', 'B3': '' },
                 content: {
-                    instruction: "B2セルに半角で『1500』を、B3セルに『未定』と入力してみましょう。入力が終わったら「回答をチェック」ボタンを押してください。",
+                    instruction: "スプレッドシートは「計算できる数値」と「ただの文字」を区別します。\n\n【操作手順】\n1. B2セルに半角で『1500』と入力してEnterを押します。\n2. B3セルに『未定』と入力してEnterを押します。\n3. 「回答をチェック」ボタンを押してください。",
                     targets: [{ cell: 'B2', value: '1500' }, { cell: 'B3', value: '未定' }],
-                    successMessage: "素晴らしい！スプレッドシートは自動的に『計算できる数値（右寄せ）』と『ただの文字（左寄せ）』を区別します。数字は必ず半角で打つのが鉄則です。",
-                    hint: "B2に1500、B3に未定と入力。Enterキーで確定を忘れずに！",
+                    successMessage: "素晴らしい！数値は右寄せ、テキストは左寄せに自動的になります。家計簿や在庫管理では、必ず数字を「半角」で打つのが鉄則です。",
+                    hint: "B2に1500、B3に未定と入力して、回答をチェック！",
                     footerAdvice: [
-                        { title: "「単位」は絶対に入れない", desc: "「1500円」と打つと計算ができなくなります。円などの単位は『表示形式』で設定しましょう。", icon: "alert" },
-                        { title: "配置でわかるデータ型", desc: "右に寄れば『数値』、左に寄れば『文字列』。意図せず左に寄っていたら全角数字を疑いましょう。", icon: "info" }
+                        { title: "「単位」は絶対に入れない", desc: "セル内に「1500円」と打つと文字扱いになり、足し算ができなくなります。円などの単位は後のステップで学ぶ『表示形式』で設定します。", icon: "alert" },
+                        { title: "配置でわかるデータ型", desc: "何も設定していないとき、右に寄れば『数値』、左に寄れば『文字列』です。意図せず左に寄っていたら全角数字を疑いましょう。", icon: "info" }
+                    ]
+                }
+            },
+            {
+                id: 'one-cell-one-data',
+                chapterId: 'ch1',
+                title: '1-2. 1セル1データの原則',
+                description: '1つのセルに複数の意味を持たせないための練習です。',
+                icon: "split",
+                initialGrid: { ...BASE_DATA, 'A1': '日付/件数', 'B1': '日付 (修正後)', 'C1': '件数 (修正後)', 'A2': '2/5 5件', 'B2': '', 'C2': '', 'A3': '2/6 12件', 'B3': '', 'C3': '' },
+                content: {
+                    instruction: "A2セルに『2/5 5件』と入っています。メモ感覚でこのように書くと、後から「合計何件か」を計算できなくなります。\n\n【操作手順】\n1. B2セルに『2/5』と入力します。\n2. C2セルに『5』と入力します。\n3. データを分けられたら「回答をチェック」を押します。",
+                    targets: [{ cell: 'B2', value: '2/5' }, { cell: 'C2', value: '5' }],
+                    successMessage: "大正解です！このように「いつ」と「何件」のデータを分けて持つことで、後から関数で簡単に集計できるようになります。",
+                    hint: "B2に 2/5 、C2に 5 と入力してください。",
+                    syntax: {
+                        name: "データベースの基本ルール",
+                        formula: "NG: 1つの箱に複数入れる / OK: 箱を分ける",
+                        details: [
+                            { label: "NG例", desc: "「佐藤（営業部）」、「1,000円（税込）」など" },
+                            { label: "OK例", desc: "名前と部署の列を分ける、金額と税区分の列を分ける" }
+                        ]
+                    },
+                    footerAdvice: [
+                        { title: "メモ帳感覚は卒業", desc: "人間にとっては『2/5 5件』の方が見やすくても、コンピュータにとっては最悪のデータです。分析や集計ができなくなります。", icon: "alert" },
+                        { title: "後から結合は簡単", desc: "分かれているデータを関数でくっつけるのは簡単ですが、混ざっているデータを後から綺麗に分けるのは非常に大変です。", icon: "lightbulb" }
+                    ]
+                }
+            },
+            {
+                id: 'number-format',
+                chapterId: 'ch1',
+                title: '1-3. 表示形式（123マーク）',
+                description: '単位や日付の見た目だけを変える機能です。',
+                icon: "layout",
+                initialGrid: { ...BASE_DATA, 'B2': '1500', 'B3': '未定' },
+                content: {
+                    instruction: "「1500円」と直接入力すると計算できなくなるため、代わりに「表示形式」を使います。\n\n【操作手順】\n1. B2セルを選択します（1500と入力されているセル）。\n2. 表の上にあるツールバーの「123▼」をクリックします。\n3. メニューから「通貨 (¥1,000)」を選択してください。\n4. 見た目が『¥1,500』に変わったら「回答をチェック」を押します。",
+                    successMessage: "完璧です！表示形式を使えば、データそのもの（数値の1500）を保ったまま、人間が見やすい形に整えることができます。",
+                    hint: "B2を選択した状態で、表のすぐ上にある「123▼」メニューから「通貨」を選んでください。",
+                    syntax: {
+                        name: "表示形式でできること",
+                        formula: "実際のデータは「1500」のまま、見た目だけ変える",
+                        details: [
+                            { label: "通貨", desc: "1500 → ¥1,500" },
+                            { label: "日付", desc: "2/5 → 2024年2月5日" },
+                            { label: "カスタム", desc: "1500 → 1,500件" }
+                        ]
+                    },
+                    footerAdvice: [
+                        { title: "計算できる状態を保つ", desc: "セルに直接「円」と入力すると文字になり計算できませんが、表示形式で「円」をつければ、裏側は数字のままなのでSUM関数などで足し算が可能です。", icon: "calculator" }
                     ]
                 }
             },
             {
                 id: 'formatting',
-                title: '2. 書式崩れを防ぐ貼り付け',
+                chapterId: 'ch1',
+                title: '1-4. 書式崩れを防ぐ貼り付け',
                 description: '見た目を壊さずにデータだけを移します。',
                 icon: "copy",
                 initialGrid: { ...BASE_DATA, 'B2': '1500', 'B3': '未定' },
                 content: {
-                    instruction: "C2の値をコピー（Ctrl+C）して、オレンジ枠のC3に『値のみ貼り付け』をしてください。\n通常の貼り付けをして書式を壊してしまった場合は、リセットしてやり直しましょう。",
+                    instruction: "他人が作った綺麗な表を壊さないための作法です。\n\n【操作手順】\n1. C2セルを選択し、コピー（Ctrl+C または上部の「コピー」ボタン）します。\n2. オレンジ枠のC3セルを選択します。\n3. 表の上の「値のみ貼り付け」ボタン（またはCtrl+Shift+V）を押します。\n4. 枠線が維持されたまま数字が変わったら「回答をチェック」します。\n※あえて「通常の貼り付け」をして枠が消える失敗を体験してみましょう。",
                     isPasteChallenge: true,
                     targets: [{ cell: 'C3', value: '85' }],
-                    successMessage: "完璧です！『値のみ貼り付け』は実務で最も使う機能です。表を汚さずに数字だけを移したい時に使いましょう。",
+                    successMessage: "素晴らしい！『値のみ貼り付け』は実務で最も使う機能です。表を汚さずに数字だけを移したい時に使いましょう。",
                     hint: "C2をコピーし、C3を選択して「値のみ貼り付け」ボタンを押してください。",
                     footerAdvice: [
-                        { title: "通常の貼り付けの罠", desc: "Ctrl+Vは色や枠線も持ってきてしまいます。これが表がグチャグチャになる最大の原因です。", icon: "copy" },
+                        { title: "通常の貼り付けの罠", desc: "Ctrl+Vは色や枠線も持ってきてしまいます。これが表をグチャグチャにする最大の原因です。", icon: "copy" },
                         { title: "ショートカット", desc: "Ctrl + Shift + V でマウスを使わずに『値のみ貼り付け』ができます。", icon: "lightbulb" }
                     ]
                 }
             },
             {
+                id: 'undo-lesson',
+                chapterId: 'ch1',
+                title: '1-5. 間違えても大丈夫（元に戻す）',
+                description: '操作を取り消して1つ前の状態に戻す方法。',
+                icon: "undo",
+                initialGrid: { ...BASE_DATA, 'B2': '1500', 'C2': '85' },
+                content: {
+                    instruction: "操作を間違えたり、誤ってデータを消してしまっても焦る必要はありません。\n\n【操作手順】\n1. C2セルを選択し、『Delete』キーか『Backspace』キーでデータを消去してください。\n2. 消えてしまったことを確認したら、表の上の「戻る」ボタン（またはCtrl+Z）を押してください。\n3. データが復元されたのを確認できたら「理解しました！」を押してください。",
+                    isTutorialStep: true,
+                    successMessage: "完璧です！間違えてもすぐCtrl+Zを押せば元通りになるので、恐れずに色々な操作を試してみてください。",
+                    hint: "C2の数字を消してから、Ctrl+Z か上の「戻る」ボタンを押して復元させましょう。",
+                    footerAdvice: [
+                        { title: "Ctrl + Z は最強の味方", desc: "文字を消した時だけでなく、間違えて貼り付けた時や並べ替えを間違えた時など、あらゆる操作を「なかったこと」にできます。", icon: "star" }
+                    ]
+                }
+            },
+
+            // --- 第2章：関数の基本と応用 ---
+            {
                 id: 'func-intro',
-                title: '3. 関数の基本：＝（イコール）',
+                chapterId: 'ch2',
+                title: '2-1. 関数の基本：＝（イコール）',
                 description: 'すべての計算はここから始まります。',
                 icon: "calculator",
-                initialGrid: { ...BASE_DATA, 'B2': '1500', 'B3': '未定', 'C3': '85' },
+                initialGrid: { ...BASE_DATA, 'B2': '1500', 'B3': '未定', 'C3': '85', 'D2': '' },
                 content: {
-                    instruction: "D2セルに『=C2』と入力してください。セル名を書くことで、その場所の値を参照できます。",
+                    instruction: "D2セルに『=C2』と入力してください。\nセル名を書くことで、その場所の値を引っ張ってくる（参照する）ことができます。",
                     targetFormula: '=C2',
                     targetCell: 'D2',
                     successMessage: "大正解！最初に『=』を入れることで「計算モード」になります。セル名（C2）を打てば、元の値が変わるとここも自動更新されます。",
@@ -123,12 +234,13 @@
             },
             {
                 id: 'func-text',
-                title: '4. 文字を扱うルール：""',
+                chapterId: 'ch2',
+                title: '2-2. 文字を扱うルール：""',
                 description: '関数の中で文字を使う時のルール。',
                 icon: "type",
                 initialGrid: { ...BASE_DATA, 'B2': '1500', 'B3': '未定', 'C3': '85', 'D2': '=C2' },
                 content: {
-                    instruction: "関数内で「文字」を表示させたい時は前後を『\"』で囲みます。\nD2セルを書き換えて『=\"合格\"』と入力してみましょう。",
+                    instruction: "関数内で「文字」を表示させたい時は前後を『\"』で囲みます。\n\n【操作手順】\n1. D2セルを書き換えて『=\"合格\"』と入力します。\n2. 入力できたら「回答をチェック」を押します。",
                     targetFormula: '="合格"',
                     targetCell: 'D2',
                     successMessage: "正解です！囲まないとスプレッドシートは「合格」を命令（関数）だと勘違いしエラーを出してしまいます。文字は必ず \"\" で挟みます。",
@@ -140,16 +252,17 @@
             },
             {
                 id: 'func-range',
-                title: '5. 範囲指定：：（コロン）',
+                chapterId: 'ch2',
+                title: '2-3. 範囲指定：：（コロン）',
                 description: '複数のセルを一気に計算する方法。',
                 icon: "grid",
-                initialGrid: { ...BASE_DATA, 'B2': '1500', 'B3': '2000', 'C3': '85', 'D2': '合格' },
+                initialGrid: { ...BASE_DATA, 'B2': '1500', 'B3': '2000', 'C3': '85', 'D2': '合格', 'G1': '合計' },
                 content: {
-                    instruction: "B6セルに、B2からB4までの合計を出す『=SUM(B2:B4)』を入力してください。\nコロン（：）は『〜から〜まで』という意味になります。",
+                    instruction: "コロン（：）は『〜から〜まで』という意味になります。\n\n【操作手順】\n1. G2セルに、B2からB4までの合計を出す『=SUM(B2:B4)』を入力してください。\n2. 計算結果が表示されたら「回答をチェック」を押します。",
                     targetFormula: '=SUM(B2:B4)',
-                    targetCell: 'B6',
+                    targetCell: 'G2',
                     successMessage: "正解です！一個ずつ足すよりSUM関数で範囲指定する方がミスもありません。100行あっても一瞬で計算できます。",
-                    hint: "B6に『=SUM(B2:B4)』を入力。カッコを閉じ忘れないように注意！",
+                    hint: "G2に『=SUM(B2:B4)』を入力。カッコを閉じ忘れないように注意！",
                     syntax: {
                         name: "SUM関数の基本",
                         formula: "=SUM( 開始セル : 終了セル )",
@@ -159,18 +272,20 @@
                         ]
                     },
                     footerAdvice: [
-                        { title: "：の意味", desc: "マウスでドラッグ選択しても、自動的にこの形式で入力されます。", icon: "grid" }
+                        { title: "：の意味", desc: "マウスでドラッグ選択しても、自動的にこの形式で入力されます。", icon: "grid" },
+                        { title: "SUM以外でも使う", desc: "平均（AVERAGE）や最大（MAX）などもこの『：』を使って範囲を指定します。", icon: "info" }
                     ]
                 }
             },
             {
                 id: 'func-relative-fail',
-                title: '6. 相対参照の罠（ズレの体験）',
+                chapterId: 'ch2',
+                title: '2-4. 相対参照の罠（ズレ体験）',
                 description: 'なぜ計算が壊れるのか、理由を体験します。',
                 icon: "unlock",
-                initialGrid: { ...BASE_DATA, 'B2': '1500', 'B3': '2000', 'B6': '7000', 'G2': '' },
+                initialGrid: { ...BASE_DATA, 'B2': '1500', 'B3': '2000', 'G1': '計算', 'G2': '' },
                 content: {
-                    instruction: "まずG2に『=B2*J2』と入力（金額×税率）。次にG2をコピーしてG3に貼り付けてください。\nG3を『ダブルクリック』か『F2キー』で開いて、式がどう変わったか確認してから判定してください。",
+                    instruction: "【操作手順】\n1. G2に『=B2*J2』と入力します（金額×税率）。\n2. G2をコピーして、G3に「通常の貼り付け（Ctrl+V）」をしてください。\n3. G3を『ダブルクリック』か『F2キー』で開いて、式がどう変わったか目で確認します。\n4. 「回答をチェック」を押してください。",
                     targetCell: 'G3',
                     targetFormula: '=B3*J3', 
                     successMessage: "ズレましたね！G3の式を見ると『=B3*J3』になっています。1行下にコピーしたせいで、税率(J2)まで1行下の空セル(J3)にズレてしまったのです。",
@@ -183,30 +298,41 @@
             },
             {
                 id: 'func-absolute',
-                title: '7. 絶対参照：＄で固定する',
+                chapterId: 'ch2',
+                title: '2-5. 絶対参照：＄で固定する',
                 description: 'コピーしても壊れない数式の作り方を学びます。',
                 icon: "lock",
-                initialGrid: { ...BASE_DATA, 'G2': '=B2*J2', 'G3': '=B3*J3' },
+                initialGrid: { ...BASE_DATA, 'G1': '計算', 'G2': '=B2*J2', 'G3': '=B3*J3' },
                 content: {
-                    instruction: "G2の式を『=B2*$J$2』に書き直してください。$記号は「固定」という意味です。\nその後、再度G2をコピーしてG3に貼り付けてみましょう。",
+                    instruction: "ズレないように修正します。\n\n【操作手順】\n1. G2セルの式を『=B2*$J$2』に書き直してください。\n2. 再度G2をコピーしてG3に貼り付けます。\n3. 「回答をチェック」を押しましょう。",
                     targetCell: 'G3',
                     targetFormula: '=B3*$J$2', 
                     successMessage: "完璧！G3を開いても税率の場所は『$J$2』のまま固定されています。オートフィルを使っても計算が壊れません。これが「絶対参照」です。",
                     hint: "G2を =B2*$J$2 に修正して、G3に貼り付け。$記号を忘れずに！",
+                    syntax: {
+                        name: "絶対参照（$）の使い方",
+                        formula: "$A$1 （行も列も固定）",
+                        details: [
+                            { label: "目的", desc: "コピー時に参照先を固定したい時" },
+                            { label: "入力法", desc: "セル名を入力中に F4キー を叩くと早い" }
+                        ]
+                    },
                     footerAdvice: [
-                        { title: "F4キーの魔法", desc: "J2と入力した直後に F4キー を叩くと、自動で $ がつきます。時短必須テクニックです。", icon: "lightbulb" }
+                        { title: "F4キーの魔法", desc: "J2と入力した直後に F4キー を叩くと、自動で $ がつきます。時短必須テクニックです。", icon: "lightbulb" },
+                        { title: "どんな時に使う？", desc: "税率、マスタの範囲など、『どこにコピーしても必ずこのセルを見てほしい』場所に使います。", icon: "lock" }
                     ]
                 }
             },
             {
                 id: 'func-mixed',
-                title: '8. 応用：複合参照の違い',
+                chapterId: 'ch2',
+                title: '2-6. 応用：複合参照の違い',
                 description: '$をつける場所によって「列」か「行」かを選んで固定できます。',
                 icon: "grid",
                 content: {
-                    instruction: "下の解説パネルを読んで、$記号の場所による効果の違いを理解しましょう。\n確認できたら「理解しました！」を押してください。",
+                    instruction: "下の解説パネルを読んで、$記号の場所による効果の違いを理解しましょう。\n確認できたら「理解しました！」を押して進んでください。",
                     isTutorialStep: true,
-                    successMessage: "片方だけ固定できると『九九の表』のような高度な表が一つの式で作れるようになります。",
+                    successMessage: "最初は全部固定する $A$1 だけでも十分ですが、片方だけ固定できると『九九の表』のような高度な表が一つの式で作れるようになります。",
                     hint: "解説パネルを読んでボタンを押して進もう！",
                     syntax: {
                         name: "$記号の位置と効果",
@@ -218,39 +344,46 @@
                         ]
                     },
                     footerAdvice: [
-                        { title: "動かしたくない方に $", desc: "$AならA列固定、$1なら1行目固定。壁を作るイメージです。", icon: "info" }
+                        { title: "動かしたくない方に $", desc: "$AならA列固定、$1なら1行目固定。壁を作るイメージです。", icon: "info" },
+                        { title: "九九の表で活躍", desc: "縦の列と横の行をそれぞれ固定することで、一つの式で九九の表を埋めることができます。", icon: "grid" }
                     ]
                 }
             },
             {
                 id: 'func-logic',
-                title: '9. 比較演算子：判定基準',
-                description: '条件を教えるための記号を学びます。',
+                chapterId: 'ch2',
+                title: '2-7. 比較演算子：判定基準',
+                description: 'コンピュータに条件を教えるための記号を学びます。',
                 icon: "binary",
-                initialGrid: { ...BASE_DATA, 'D2': '' },
+                initialGrid: { ...BASE_DATA, 'B2': '1500', 'B3': '2000', 'C3': '85', 'D2': '' },
                 content: {
-                    instruction: "D2セルに、スコア(C2)が80以上かを判定する式『=C2>=80』を入力してください。",
+                    instruction: "D2セルに、スコア(C2)が80以上かを判定する式『=C2>=80』を入力して判定してください。",
                     targetFormula: '=C2>=80',
                     targetCell: 'D2',
-                    successMessage: "正解！『>=』は『以上』を表します。正しい時は TRUE、違う時は FALSE と表示されます。IF関数はこの結果を裏で見ています。",
+                    successMessage: "正解！『>=』は『以上』を表します。正しい時は TRUE、違う時は FALSE と表示されます。IF関数はこの結果を裏で見て判断を下しています。",
                     hint: "D2に『=C2>=80』と入力。記号の向きに注意（= は常に右側です）。",
                     syntax: {
                         name: "主な比較演算子一覧",
                         formula: "A1 >= 80",
                         details: [
-                            { label: ">=", desc: "以上" },
-                            { label: ">", desc: "より大きい" },
+                            { label: ">=", desc: "以上（含む）" },
+                            { label: ">", desc: "より大きい（含まない）" },
                             { label: "<=", desc: "以下" },
                             { label: "<", desc: "未満" },
                             { label: "=", desc: "等しい" },
                             { label: "<>", desc: "等しくない" }
                         ]
-                    }
+                    },
+                    footerAdvice: [
+                        { title: "演算子の向きに注意", desc: ">= は正解ですが、=> はエラーになります。常に = は右側に来ます。", icon: "alert" },
+                        { title: "TRUEとFALSEの正体", desc: "これらは「論理値」です。IF関数はこの結果を見て表示を切り替えています。", icon: "binary" }
+                    ]
                 }
             },
             {
                 id: 'func-if',
-                title: '10. IF関数：条件分岐',
+                chapterId: 'ch2',
+                title: '2-8. IF関数：条件分岐',
                 description: '表示を自動で切り替える重要関数。',
                 icon: "info",
                 initialGrid: { ...BASE_DATA, 'D2': '' },
@@ -267,12 +400,17 @@
                             { label: "真の場合", desc: "条件が正しい（TRUE）時の表示" },
                             { label: "偽の場合", desc: "条件が違う（FALSE）時の表示" }
                         ]
-                    }
+                    },
+                    footerAdvice: [
+                        { title: "文字は \"\" で囲む", desc: "合格などの文字を関数内で使う時は必ず囲みます。忘れると #NAME? エラーになります。", icon: "type" },
+                        { title: "カンマは半角で", desc: "パーツの区切りは必ず半角の『,』です。全角の『、』はエラーの原因です。", icon: "alert" }
+                    ]
                 }
             },
             {
                 id: 'func-countif',
-                title: '11. COUNTIF関数：集計',
+                chapterId: 'ch2',
+                title: '2-9. COUNTIF関数：集計',
                 description: '特定の文字だけを数える関数。',
                 icon: "hash",
                 initialGrid: { ...BASE_DATA, 'D2': '合格', 'D3': '不合格', 'D4': '合格', 'E5': '' },
@@ -286,20 +424,25 @@
                         name: "COUNTIF関数の構文",
                         formula: "=COUNTIF( 範囲 , 条件 )",
                         details: [
-                            { label: "範囲", desc: "調べたいセルの塊" },
-                            { label: "条件", desc: "数えたい内容" }
+                            { label: "範囲", desc: "調べたいセルの塊（例: D2:D4）" },
+                            { label: "条件", desc: "数えたい内容（文字なら \"\" で囲む）" }
                         ]
-                    }
+                    },
+                    footerAdvice: [
+                        { title: "部分一致の裏技", desc: "条件を \"*合格*\" とすると、「一部に合格という文字が含まれるもの」を数えられます。", icon: "lightbulb" },
+                        { title: "範囲の固定", desc: "式をコピーして使うなら、範囲 D2:D4 に F4 を押して固定するのが実務の基本です。", icon: "lock" }
+                    ]
                 }
             },
             {
                 id: 'func-vlookup',
-                title: '12. VLOOKUP関数：検索',
+                chapterId: 'ch2',
+                title: '2-10. VLOOKUP関数：検索',
                 description: 'マスタから自動で情報を引く最強関数。',
                 icon: "search",
                 initialGrid: { ...BASE_DATA, 'A2': '101', 'F2': '' },
                 content: {
-                    instruction: "F2に、ID(A2)を使ってマスタ表(H2:I4)から「商品名」を検索して表示させてください。",
+                    instruction: "F2に、ID(A2)を使って右のマスタ表(H2:I4)から「商品名」を検索して表示させてください。",
                     targetFormula: '=VLOOKUP(A2,H2:I4,2,FALSE)',
                     targetCell: 'F2',
                     successMessage: "おめでとうございます！VLOOKUPまでマスターすれば、実務で『スプレッドシートが使えます』と胸を張れます！",
@@ -309,14 +452,120 @@
                         formula: "=VLOOKUP( 検索値 , 範囲 , 列番号 , FALSE )",
                         details: [
                             { label: "検索値", desc: "探す手がかり" },
-                            { label: "列番号", desc: "何番目の列を出すか（今回は2）" }
+                            { label: "範囲", desc: "データの塊（マスタ）" },
+                            { label: "列番号", desc: "何番目の列を出すか（今回は2）" },
+                            { label: "FALSE", desc: "ピッタリ一致するものを探す設定" }
                         ]
-                    }
+                    },
+                    footerAdvice: [
+                        { title: "一番左の列のルール", desc: "VLOOKUPは、検索範囲の『一番左の列』にあるデータしか探せません。", icon: "alert" },
+                        { title: "FALSEの意味", desc: "「ピッタリ同じものを探せ」という意味です。実務の9割はこの設定です。", icon: "info" }
+                    ]
+                }
+            },
+
+            // --- 第3章：チームで使う便利機能 ---
+            {
+                id: 'data-validation',
+                chapterId: 'ch3',
+                title: '3-1. データの入力規則',
+                description: '入力ミスを物理的に防ぐ仕組み。',
+                icon: "list-checks",
+                initialGrid: { ...BASE_DATA, 'I2': '' },
+                content: {
+                    instruction: "入力ミスや表記揺れを防ぐため、I2セルに選択肢（プルダウン）を作ります。\n\n【操作手順】\n1. I2セルを選択してください。\n2. メニューの「データ」＞「データの入力規則」を選択します。\n3. 出てきた画面の条件に『リンゴ,バナナ,ミカン』とカンマ区切りで入力して保存します。\n4. I2セルの右に現れた▼をクリックし、『バナナ』を選択して「回答をチェック」を押します。",
+                    successMessage: "完璧です！入力規則を使えば、データがバラけるのを防ぎ、正確なデータ管理が可能になります。",
+                    hint: "I2を選択し、メニューから データ ＞ データの入力規則。条件に リンゴ,バナナ,ミカン と入力して保存。その後セル右端の▼からバナナを選択。",
+                    syntax: {
+                        name: "入力規則（プルダウン）のメリット",
+                        formula: "「データ」メニュー ＞ 「データの入力規則」",
+                        details: [
+                            { label: "表記揺れ防止", desc: "集計時にデータがバラけるのを防ぐ" },
+                            { label: "入力の高速化", desc: "タイピングせずクリックで選べる" }
+                        ]
+                    },
+                    footerAdvice: [
+                        { title: "チーム作業の必須設定", desc: "他人が入力する列には、必ず入力規則を設定してミスを未然に防ぎましょう。", icon: "lock" }
+                    ]
+                }
+            },
+            {
+                id: 'filter-basic',
+                chapterId: 'ch3',
+                title: '3-2. フィルタ機能',
+                description: '必要なデータだけを抽出・並べ替え。',
+                icon: "filter",
+                initialGrid: { ...BASE_DATA },
+                content: {
+                    instruction: "大量のデータから条件に合う行だけを絞り込みます。\n\n【操作手順】\n1. 表の中（どこでもOK）を選択します。\n2. メニューの「データ」＞「フィルタを作成」を選択します。\n3. 1行目の見出しに緑の▼アイコンが出たら、D1（判定）の▼をクリックします。\n4. 『不合格』のチェックを外してOKを押します。\n5. 表が絞り込まれたら「回答をチェック」を押します。",
+                    successMessage: "素晴らしい！フィルタを使えば、何万行あるデータからでも目的のデータだけを一瞬で探し出せます。",
+                    hint: "データ ＞ フィルタを作成。その後D1の▼から「不合格」のチェックを外しOKを押す。",
+                    syntax: {
+                        name: "フィルタでできること",
+                        formula: "見出し行を選択して「フィルタを作成」ボタン",
+                        details: [
+                            { label: "絞り込み", desc: "「合格」の人だけを表示するなど" },
+                            { label: "並べ替え", desc: "売上が高い順、あいうえお順に並べる" }
+                        ]
+                    },
+                    footerAdvice: [
+                        { title: "見出し行が重要", desc: "フィルタを正しく機能させるには、1行目に必ず明確な「見出し（ID、名前など）」が必要です。", icon: "grid" }
+                    ]
+                }
+            },
+            {
+                id: 'filter-view',
+                chapterId: 'ch3',
+                title: '3-3. フィルタ表示（超重要）',
+                description: '他人の画面を邪魔せずにフィルタを使う方法。',
+                icon: "filter",
+                initialGrid: { ...BASE_DATA },
+                content: {
+                    instruction: "他人の画面を邪魔せずに自分だけ絞り込みを行う、共同編集の必須機能です。\n\n【操作手順】\n1. メニューの「データ」＞「フィルタ表示 ＞ 新規作成」を選択します。\n2. 枠が黒くなったら、左上の名前を『合格者のみ』に変更しEnterを押します。\n3. D1（判定）の緑の▼から『不合格』のチェックを外してOKを押します。\n4. 右上の×で黒枠を一度閉じます（通常画面に戻る）。\n5. 再びメニュー「データ」から作成した『合格者のみ』を選択して画面が切り替わったら判定ボタンを押します。",
+                    successMessage: "完璧です！これを理解していると「誰か勝手に並べ替えた！？」というチーム内のトラブルを完全に防げます。",
+                    hint: "データ＞フィルタ表示＞新規作成。名前を「合格者のみ」にし、D列で絞り込んでから一度閉じる。再度メニューから呼び出す。",
+                    syntax: {
+                        name: "「フィルタ」と「フィルタ表示」の違い",
+                        formula: "データ ＞ フィルタ表示 ＞ 新しいフィルタ表示を作成",
+                        details: [
+                            { label: "通常のフィルタ", desc: "自分が絞り込むと、同時に見ている他人の画面も変わってしまう" },
+                            { label: "フィルタ表示", desc: "【重要】自分だけの画面で絞り込みができる。他人の邪魔をしない" }
+                        ]
+                    },
+                    footerAdvice: [
+                        { title: "チームの暗黙の了解", desc: "複数人で同時に見ているシートでは、通常のフィルタではなく「フィルタ表示」を使うのが絶対のマナーです。", icon: "alert" }
+                    ]
+                }
+            },
+            {
+                id: 'freeze-panes',
+                chapterId: 'ch3',
+                title: '3-4. ウィンドウ枠の固定',
+                description: 'スクロールしても見出しを見失わない設定。',
+                icon: "layout",
+                initialGrid: { ...BASE_DATA },
+                content: {
+                    instruction: "下にスクロールした時、見出しが見えなくなると何のデータかわからなくなります。\n\n【操作手順】\n1. メニューの「表示」＞「固定 ＞ 1行」をクリックします。\n2. メニューの「表示」＞「固定 ＞ 1列」もクリックします。\n3. 表の中を右や下にスクロールしてみて、1行目とA列がついてくるのを確認できたら「回答をチェック」を押して全コース完了です！",
+                    successMessage: "お疲れ様でした！見出しを固定するだけで、シートの使いやすさが格段に上がります。これで全コース修了です！",
+                    hint: "表示 メニューから 1行 と 1列 をそれぞれ選んでください。その後表をスクロールして確認します。",
+                    syntax: {
+                        name: "ウィンドウ枠の固定",
+                        formula: "表示 ＞ 固定 ＞ 1行（または1列）",
+                        details: [
+                            { label: "目的", desc: "スクロールしても、見出し（名前、金額など）が常に表示されたままになる" }
+                        ]
+                    },
+                    footerAdvice: [
+                        { title: "グレーの太線をドラッグ", desc: "実はメニューを使わなくても、行番号「1」の上にある太いグレーの線を下に引っ張るだけで簡単に固定できます。", icon: "pointer" },
+                        { title: "使いやすさへの配慮", desc: "データが多いシートを作ったら、必ず見出しを固定して、他の人が見やすいようにしましょう。", icon: "star" }
+                    ]
                 }
             }
         ];
 
+        // --- Main App Component ---
         const App = () => {
+            const [currentView, setCurrentView] = useState('home'); 
             const [currentLessonIdx, setCurrentLessonIdx] = useState(0);
             const [gridData, setGridData] = useState({});
             const [cellFormats, setCellFormats] = useState({});
@@ -328,24 +577,72 @@
             const [progress, setProgress] = useState([]);
             const [showSubmit, setShowSubmit] = useState(true);
             
+            // Undo history
+            const historyRef = useRef([]);
+
+            // ツールバーとシートの状態
+            const [activeMenu, setActiveMenu] = useState(null);
+            const [sheetState, setSheetState] = useState({ 
+                hasFilter: false, 
+                filterOptions: {}, 
+                filterViewMode: false, 
+                filterViewName: 'フィルタ 1',
+                savedFilterViews: [],
+                activeFilterViewName: null,
+                frozenRow: 0, 
+                frozenCol: null 
+            });
+            const [validationOptions, setValidationOptions] = useState({});
+
+            // モーダル状態
+            const [modalType, setModalType] = useState(null);
+            const [modalData, setModalData] = useState(null);
+
             const inputRef = useRef(null);
             const containerRef = useRef(null);
             const lesson = LESSONS[currentLessonIdx];
 
-            const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
-            const rows = [1, 2, 3, 4, 5, 6];
-
             const loadLessonState = (idx) => {
                 const l = LESSONS[idx];
-                setGridData({ ...l.initialGrid });
+                const initial = l.initialGrid ? { ...l.initialGrid } : { ...BASE_DATA };
+                setGridData(initial);
                 setCellFormats({ 'C3': 'special-target' });
+                historyRef.current = []; // 履歴リセット
+                
+                setSheetState({ 
+                    hasFilter: false, 
+                    filterOptions: {}, 
+                    filterViewMode: false, 
+                    filterViewName: 'フィルタ 1',
+                    savedFilterViews: [],
+                    activeFilterViewName: null,
+                    frozenRow: 0, 
+                    frozenCol: null 
+                });
+                setValidationOptions({});
+                setActiveMenu(null);
+                setModalType(null);
                 setFeedback({ type: '', message: '' });
-                setShowSubmit(idx !== 7); // Tutorial step doesn't show submit initially
-                if (l.content.targets && l.content.targets.length > 0) setActiveCell(l.content.targets[0].cell);
+                setShowSubmit(!l.content.isTutorialStep);
+                
+                if (l.id === 'number-format') setActiveCell('B2');
+                else if (l.id === 'data-validation') setActiveCell('I2');
+                else if (l.id === 'undo-lesson') setActiveCell('C2');
+                else if (l.content.targets && l.content.targets.length > 0) setActiveCell(l.content.targets[0].cell);
                 else if (l.content.targetCell) setActiveCell(l.content.targetCell);
+                else setActiveCell('A1');
             };
 
-            useEffect(() => { loadLessonState(0); }, []);
+            const startLessons = () => {
+                setCurrentView('lesson');
+                loadLessonState(0);
+            };
+
+            useEffect(() => {
+                if (currentView === 'lesson' && containerRef.current && !modalType) {
+                    containerRef.current.focus();
+                }
+            }, [currentView, currentLessonIdx, modalType]);
 
             useEffect(() => {
                 if (isEditing && inputRef.current) {
@@ -421,16 +718,42 @@
 
             const getDisplayValue = (id) => {
                 const rawValue = gridData[id];
-                if (!rawValue) return '';
-                const result = evaluateFormula(rawValue, gridData);
+                if (!rawValue && rawValue !== 0) return '';
+                const result = evaluateFormula(String(rawValue), gridData);
                 return result.value;
             };
+
+            // 行の表示判定（フィルタ用）
+            const visibleRows = rows.filter(r => {
+                if (r === 1) return true; 
+                let isVisible = true;
+                for (const [col, hiddenValues] of Object.entries(sheetState.filterOptions)) {
+                    const cellId = `${col}${r}`;
+                    const val = getDisplayValue(cellId);
+                    if (hiddenValues.includes(val)) {
+                        isVisible = false;
+                        break;
+                    }
+                }
+                return isVisible;
+            });
 
             const handleSubmitJudge = () => {
                 const normalizedInput = (cell) => (gridData[cell] || '').replace(/\s/g, '').toUpperCase();
                 let isCorrect = false;
 
-                if (lesson.id === 'formatting') {
+                if (lesson.id === 'number-format') {
+                    isCorrect = cellFormats['B2'] === 'currency';
+                } else if (lesson.id === 'data-validation') {
+                    isCorrect = gridData['I2'] === 'バナナ' && cellFormats['I2'] === 'validation';
+                } else if (lesson.id === 'filter-basic') {
+                    isCorrect = sheetState.hasFilter === true && sheetState.filterOptions['D'] && sheetState.filterOptions['D'].includes('不合格');
+                } else if (lesson.id === 'filter-view') {
+                    const view = sheetState.savedFilterViews.find(v => v.name === '合格者のみ');
+                    isCorrect = sheetState.activeFilterViewName === '合格者のみ' && view && view.filterOptions['D'] && view.filterOptions['D'].includes('不合格');
+                } else if (lesson.id === 'freeze-panes') {
+                    isCorrect = sheetState.frozenRow === 1 && sheetState.frozenCol === 'A';
+                } else if (lesson.id === 'formatting') {
                     isCorrect = String(gridData['C3'] || '') === '85' && cellFormats['C3'] === 'special-target';
                 } else if (lesson.content.targets) {
                     isCorrect = lesson.content.targets.every(t => String(gridData[t.cell] || '') === t.value);
@@ -444,18 +767,33 @@
                     if (!progress.includes(lesson.id)) setProgress([...progress, lesson.id]);
                     setShowSubmit(false);
                 } else {
-                    setFeedback({ type: 'error', message: '入力を確認してもう一度試しましょう。ヒントも参考にしてください。' });
+                    let errorMsg = '操作や入力を確認してもう一度試しましょう。ヒントも参考にしてください。';
+                    if (lesson.content.targetCell && gridData[lesson.content.targetCell]) {
+                        const result = evaluateFormula(gridData[lesson.content.targetCell], gridData);
+                        if (result.error) errorMsg = `エラー発生: ${result.value} (${result.error})`;
+                    }
+                    setFeedback({ type: 'error', message: errorMsg });
                 }
             };
 
             const commitEdit = () => {
                 if (!isEditing) return;
+                historyRef.current.push({...gridData});
                 setGridData(prev => ({ ...prev, [activeCell]: editValue }));
                 setIsEditing(false);
                 if (feedback.type === 'error') setFeedback({ type: '', message: '' });
             };
 
+            const handleUndo = () => {
+                if (historyRef.current.length > 0) {
+                    const prevData = historyRef.current.pop();
+                    setGridData(prevData);
+                    setFeedback({ type: 'info', message: '操作を元に戻しました。' });
+                }
+            };
+
             const handleCellClick = (id) => {
+                setActiveMenu(null);
                 if (id === activeCell) { setIsEditing(true); setEditValue(gridData[id] || ''); }
                 else { if (isEditing) commitEdit(); setActiveCell(id); setIsEditing(false); }
             };
@@ -468,15 +806,17 @@
                 }
                 
                 if (e.ctrlKey || e.metaKey) {
-                    if (e.key === 'c') { handleCopy(); e.preventDefault(); }
+                    if (e.key === 'c') { handleCopy(); e.preventDefault(); return; }
                     if (e.key === 'v') {
                         if (e.shiftKey) handlePasteSpecial();
                         else handleNormalPaste();
                         e.preventDefault();
+                        return;
                     }
+                    if (e.key === 'z') { handleUndo(); e.preventDefault(); return; }
                 }
                 
-                if (e.key === 'F2') { setIsEditing(true); setEditValue(gridData[activeCell] || ''); e.preventDefault(); }
+                if (e.key === 'F2') { setIsEditing(true); setEditValue(gridData[activeCell] || ''); e.preventDefault(); return; }
                 
                 const colIdx = cols.indexOf(activeCell[0]);
                 const rowIdx = parseInt(activeCell.substring(1));
@@ -486,7 +826,10 @@
                     case 'ArrowDown': if (rowIdx < rows.length) setActiveCell(`${cols[colIdx]}${rowIdx + 1}`); e.preventDefault(); break;
                     case 'ArrowLeft': if (colIdx > 0) setActiveCell(`${cols[colIdx - 1]}${rowIdx}`); e.preventDefault(); break;
                     case 'ArrowRight': if (colIdx < cols.length - 1) setActiveCell(`${cols[colIdx + 1]}${rowIdx}`); e.preventDefault(); break;
-                    case 'Backspace': setGridData(prev => ({ ...prev, [activeCell]: '' })); break;
+                    case 'Backspace': case 'Delete': 
+                        historyRef.current.push({...gridData});
+                        setGridData(prev => ({ ...prev, [activeCell]: '' })); 
+                        break;
                     default: if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) { setIsEditing(true); setEditValue(e.key); }
                 }
             };
@@ -498,6 +841,7 @@
 
             const handleNormalPaste = () => {
                 if (!clipboard) return;
+                historyRef.current.push({...gridData});
                 const sCol = cols.indexOf(clipboard.cell[0]);
                 const sRow = parseInt(clipboard.cell.substring(1));
                 const tCol = cols.indexOf(activeCell[0]);
@@ -506,146 +850,357 @@
                 setGridData(prev => ({ ...prev, [activeCell]: shiftedValue }));
                 setCellFormats(prev => ({ ...prev, [activeCell]: clipboard.format }));
                 if (lesson.id === 'formatting' && activeCell === 'C3') {
-                    setFeedback({ type: 'error', message: '通常の貼り付けをしたため、書式（オレンジの枠）が崩れました！リセットして「値のみ貼り付け」を試してください。' });
+                    setFeedback({ type: 'error', message: '通常の貼り付けをしたため、書式（オレンジの枠）が崩れました！「戻る」ボタンを押して「値のみ貼り付け」を試してください。' });
                 }
             };
 
             const handlePasteSpecial = () => {
                 if (!clipboard) return;
+                historyRef.current.push({...gridData});
                 setGridData(prev => ({ ...prev, [activeCell]: clipboard.value }));
                 setFeedback({ type: 'info', message: '値のみを貼り付けました。' });
             };
 
-            const getCellStyles = (id) => {
-                let styles = "border p-0 min-w-[100px] h-10 relative cursor-cell text-sm transition-all ";
-                if (activeCell === id && !isEditing) styles += "ring-2 ring-blue-500 z-10 bg-blue-50/30 ";
-                else styles += "bg-white hover:bg-slate-50 ";
+            // Toolbar Actions
+            const toggleMenu = (menuName) => {
+                setActiveMenu(activeMenu === menuName ? null : menuName);
+            };
+
+            const applyFormat = (formatType) => {
+                setCellFormats(prev => ({ ...prev, [activeCell]: formatType }));
+                setActiveMenu(null);
+                if (feedback.type === 'error') setFeedback({ type: '', message: '' });
+            };
+
+            const applyDataValidation = () => {
+                setModalType('validation');
+                setModalData({ cell: activeCell, options: validationOptions[activeCell] ? validationOptions[activeCell].join(',') : '' });
+                setActiveMenu(null);
+            };
+
+            const toggleFilter = () => {
+                setSheetState(prev => ({ ...prev, hasFilter: !prev.hasFilter, filterOptions: {} }));
+                setActiveMenu(null);
+                if (feedback.type === 'error') setFeedback({ type: '', message: '' });
+            };
+
+            const openFilterModal = (col) => {
+                const uniqueVals = new Set();
+                rows.slice(1).forEach(r => {
+                    uniqueVals.add(getDisplayValue(`${col}${r}`) || '');
+                });
+                setModalType('filter');
+                setModalData({ 
+                    col: col, 
+                    uniqueValues: Array.from(uniqueVals), 
+                    hiddenValues: sheetState.filterOptions[col] || [] 
+                });
+            };
+
+            const createFilterView = () => {
+                setSheetState(prev => ({ ...prev, filterViewMode: true, filterViewName: 'フィルタ 1', hasFilter: true, filterOptions: {} }));
+                setActiveMenu(null);
+                if (feedback.type === 'error') setFeedback({ type: '', message: '' });
+            };
+
+            const saveFilterView = () => {
+                if (sheetState.filterViewMode && sheetState.filterViewName) {
+                    const newView = { name: sheetState.filterViewName, filterOptions: sheetState.filterOptions };
+                    setSheetState(prev => ({
+                        ...prev,
+                        savedFilterViews: [...prev.savedFilterViews.filter(v => v.name !== prev.filterViewName), newView]
+                    }));
+                }
+            };
+
+            const closeFilterView = () => {
+                saveFilterView();
+                setSheetState(prev => ({ ...prev, filterViewMode: false, hasFilter: false, filterOptions: {}, activeFilterViewName: null }));
+            };
+
+            const loadFilterView = (name) => {
+                const view = sheetState.savedFilterViews.find(v => v.name === name);
+                if (view) {
+                    setSheetState(prev => ({ ...prev, filterViewMode: true, filterViewName: name, hasFilter: true, filterOptions: view.filterOptions, activeFilterViewName: name }));
+                }
+                setActiveMenu(null);
+            };
+
+            const freezeRow = (rowNum) => {
+                setSheetState(prev => ({ ...prev, frozenRow: rowNum }));
+                setActiveMenu(null);
+                if (feedback.type === 'error') setFeedback({ type: '', message: '' });
+            };
+
+            const freezeCol = (col) => {
+                setSheetState(prev => ({ ...prev, frozenCol: col }));
+                setActiveMenu(null);
+                if (feedback.type === 'error') setFeedback({ type: '', message: '' });
+            };
+
+            const getCellStyles = (id, r, c) => {
+                let styles = "border-b border-r p-0 h-[32px] relative cursor-cell text-sm transition-all ";
+                
+                if (activeCell === id && !isEditing) styles += "ring-2 ring-blue-500 z-10 ";
                 
                 const displayVal = getDisplayValue(id);
                 const format = cellFormats[id];
-                const isHeader = parseInt(id.substring(1)) === 1;
-                
-                if (isHeader) styles += "bg-slate-100 font-bold text-center text-slate-500 border-slate-200 ";
-                if (id.startsWith('H') || id.startsWith('I') || id.startsWith('J')) styles += "border-l-2 border-slate-300 ";
+                const isHeader = r === 1;
                 
                 if (!isHeader) {
                     if (id === 'C2' || format === 'conditional-green') {
                         const val = getDisplayValue(id);
-                        if (!isNaN(val) && parseFloat(val) >= 80) styles += "bg-green-100 text-green-800 font-bold ";
+                        if (!isNaN(val) && parseFloat(val) >= 80) styles += "text-green-800 font-bold ";
                     }
-                    if (format === 'special-target') styles += "bg-orange-50 text-orange-900 border-2 border-orange-400 ring-1 ring-orange-200 ring-inset ";
+                    if (format === 'special-target') styles += "text-orange-900 border-2 border-orange-400 ring-1 ring-orange-200 ring-inset ";
                     if (String(displayVal).startsWith('#')) styles += "text-red-500 font-bold ";
                 }
                 return styles;
             };
 
+            if (currentView === 'home') {
+                return (
+                    <div className="flex flex-col min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-blue-200">
+                        <header className="bg-white border-b px-6 py-4 flex items-center justify-between shadow-sm z-20">
+                            <div className="flex items-center gap-3">
+                                <div className="bg-green-600 p-2 rounded-lg text-white shadow-md shadow-green-100">
+                                    <Icon name="spreadsheet" className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h1 className="text-xl font-bold tracking-tight">スプレッドシート・マスター道場</h1>
+                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Training Edition v7.2</p>
+                                </div>
+                            </div>
+                            <div className="hidden md:flex items-center text-xs font-medium text-amber-600 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-200">
+                                <Icon name="info" className="w-4 h-4 mr-1.5" />
+                                ※ 本アプリは操作を擬似的に体験するシミュレーターであり、実際の挙動とは一部異なります。
+                            </div>
+                        </header>
+                        
+                        <main className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-4xl mx-auto">
+                            <div className="bg-white p-10 rounded-3xl shadow-xl border border-slate-100 w-full">
+                                <div className="mx-auto bg-blue-100 w-20 h-20 flex items-center justify-center rounded-2xl mb-6 shadow-inner text-blue-600">
+                                    <Icon name="spreadsheet" className="w-10 h-10" />
+                                </div>
+                                <h2 className="text-3xl font-black mb-4 text-slate-800">ただの「メモ帳」からの脱却</h2>
+                                <p className="text-lg text-slate-600 mb-10 leading-relaxed font-medium">
+                                    スプレッドシートは、表の形をした強力なデータベースです。<br/>
+                                    正しいルールでデータを入力し、関数と機能を使いこなせば、<br/>
+                                    面倒な集計や事務作業はすべて自動化できます。
+                                </p>
+                                
+                                <div className="grid md:grid-cols-3 gap-6 mb-10 text-left">
+                                    <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 shadow-sm">
+                                        <Icon name="grid" className="w-8 h-8 text-blue-500 mb-3" />
+                                        <h3 className="font-bold mb-2">第1章: 入力の鉄則</h3>
+                                        <p className="text-xs text-slate-600 leading-relaxed">計算できる正しいデータの持ち方、表示形式の罠、書式を壊さないコピペの作法を学びます。</p>
+                                    </div>
+                                    <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 shadow-sm">
+                                        <Icon name="calculator" className="w-8 h-8 text-green-500 mb-3" />
+                                        <h3 className="font-bold mb-2">第2章: 関数の基本と応用</h3>
+                                        <p className="text-xs text-slate-600 leading-relaxed">絶対参照（$）の概念から、実務必須の IF, COUNTIF, VLOOKUP まで網羅します。</p>
+                                    </div>
+                                    <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 shadow-sm">
+                                        <Icon name="filter" className="w-8 h-8 text-amber-500 mb-3" />
+                                        <h3 className="font-bold mb-2">第3章: チーム機能</h3>
+                                        <p className="text-xs text-slate-600 leading-relaxed">共同編集時のトラブルを防ぐフィルタ表示や、入力規則など便利機能を実際に操作して学びます。</p>
+                                    </div>
+                                </div>
+
+                                <button 
+                                    onClick={startLessons}
+                                    className="bg-blue-600 text-white text-lg font-black px-10 py-4 rounded-full shadow-xl shadow-blue-200 hover:bg-blue-700 hover:scale-105 transition-all flex items-center gap-3 mx-auto"
+                                >
+                                    <Icon name="play" className="w-6 h-6 fill-current" />
+                                    学習をスタートする
+                                </button>
+                            </div>
+                        </main>
+                    </div>
+                );
+            }
+
             return (
                 <div ref={containerRef} className="flex flex-col h-screen bg-slate-50 text-slate-900 font-sans select-none outline-none" onKeyDown={handleKeyDown} tabIndex="0">
-                    <header className="bg-white border-b px-6 py-4 flex items-center justify-between shadow-sm z-20">
-                        <div className="flex items-center gap-3">
-                            <div className="bg-green-600 p-2 rounded-lg text-white shadow-md shadow-green-100">
-                                <Icon name="spreadsheet" className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <h1 className="text-xl font-bold tracking-tight">スプレッドシート・マスター道場</h1>
-                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Training Edition v4.2</p>
+                    {/* Modals */}
+                    {modalType === 'validation' && (
+                        <div className="fixed inset-0 bg-black/30 z-[100] flex items-center justify-center" onClick={() => setModalType(null)}>
+                            <div className="bg-white p-6 rounded-xl shadow-xl w-80" onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
+                                <h3 className="font-bold text-lg mb-1">データの入力規則</h3>
+                                <p className="text-xs text-slate-500 mb-4 font-mono border-b pb-2">対象セル: {modalData.cell}</p>
+                                <label className="block text-sm font-bold mb-2">条件（カンマ区切りで入力）</label>
+                                <input type="text" className="w-full border border-slate-300 rounded-lg p-2 text-sm mb-6 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="例: リンゴ,バナナ,ミカン" value={modalData.options} onChange={e => setModalData({...modalData, options: e.target.value})} onKeyDown={e => e.stopPropagation()} autoFocus />
+                                <div className="flex justify-end gap-2">
+                                    <button onClick={() => setModalType(null)} className="px-4 py-2 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-lg">キャンセル</button>
+                                    <button onClick={() => {
+                                        const opts = modalData.options.split(',').map(s=>s.trim()).filter(Boolean);
+                                        if (opts.length > 0) {
+                                            setValidationOptions(prev => ({...prev, [modalData.cell]: opts}));
+                                            setCellFormats(prev => ({...prev, [modalData.cell]: 'validation'}));
+                                        }
+                                        setModalType(null);
+                                    }} className="px-4 py-2 text-sm font-bold bg-blue-600 text-white rounded-lg hover:bg-blue-700">保存</button>
+                                </div>
                             </div>
                         </div>
+                    )}
+
+                    {modalType === 'filter' && (
+                        <div className="fixed inset-0 bg-transparent z-[100] flex items-start justify-center pt-32" onClick={() => setModalType(null)}>
+                            <div className="bg-white p-4 rounded-xl shadow-2xl border border-slate-200 w-64" onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
+                                <h3 className="font-bold text-sm mb-3">絞り込み: 列 {modalData.col}</h3>
+                                <div className="max-h-48 overflow-y-auto border border-slate-200 rounded-lg p-2 mb-3 space-y-1 custom-scrollbar">
+                                    {modalData.uniqueValues.map(val => (
+                                        <label key={val} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-50 p-1.5 rounded">
+                                            <input type="checkbox" className="rounded text-blue-600 focus:ring-blue-500" checked={!modalData.hiddenValues.includes(val)} onChange={(e) => {
+                                                let newHidden = [...modalData.hiddenValues];
+                                                if (e.target.checked) newHidden = newHidden.filter(v => v !== val);
+                                                else newHidden.push(val);
+                                                setModalData({...modalData, hiddenValues: newHidden});
+                                            }} />
+                                            <span className="truncate">{val === '' ? '(空白)' : val}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                    <button onClick={() => setModalType(null)} className="px-3 py-1.5 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-lg">キャンセル</button>
+                                    <button onClick={() => {
+                                        setSheetState(prev => {
+                                            const newState = {...prev, filterOptions: {...prev.filterOptions, [modalData.col]: modalData.hiddenValues}};
+                                            if (newState.filterViewMode && newState.filterViewName) {
+                                                const newView = { name: newState.filterViewName, filterOptions: newState.filterOptions };
+                                                newState.savedFilterViews = [...newState.savedFilterViews.filter(v => v.name !== newState.filterViewName), newView];
+                                            }
+                                            return newState;
+                                        });
+                                        setModalType(null);
+                                    }} className="px-3 py-1.5 text-sm font-bold bg-green-600 text-white rounded-lg hover:bg-green-700">OK</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <header className="bg-white border-b px-6 py-3 flex items-center justify-between shadow-sm z-30 shrink-0">
+                        <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setCurrentView('home')}>
+                            <div className="bg-green-600 p-2 rounded-lg text-white shadow-md shadow-green-100 group-hover:bg-green-700 transition-colors">
+                                <Icon name="home" className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h1 className="text-xl font-bold tracking-tight group-hover:text-blue-600 transition-colors">スプレッドシート道場</h1>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Training Edition v7.2</p>
+                            </div>
+                        </div>
+                        <div className="hidden lg:flex items-center text-xs font-bold text-amber-700 bg-amber-50 px-4 py-2 rounded-lg border border-amber-200">
+                            <Icon name="info" className="w-4 h-4 mr-2" />
+                            ※本アプリは操作を擬似的に体験するシミュレーターであり、実際の挙動とは一部異なります。
+                        </div>
                         <div className="flex items-center gap-6">
-                            <div className="w-40 h-1.5 bg-slate-100 rounded-full overflow-hidden border">
+                            <div className="w-32 h-1.5 bg-slate-100 rounded-full overflow-hidden border">
                                 <div className="h-full bg-green-500 transition-all duration-700" style={{ width: `${(progress.length / LESSONS.length) * 100}%` }}></div>
                             </div>
                         </div>
                     </header>
 
                     <div className="flex flex-1 overflow-hidden">
-                        <nav className="w-72 bg-white border-r overflow-y-auto hidden lg:block shadow-sm">
-                            <div className="p-4 border-b bg-slate-50/50"><h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">カリキュラム (全12ステップ)</h2></div>
-                            {LESSONS.map((l, idx) => (
-                                <button key={l.id} onClick={() => { setCurrentLessonIdx(idx); loadLessonState(idx); }} className={`w-full flex items-start gap-3 p-4 text-left border-b transition-all ${currentLessonIdx === idx ? 'bg-blue-50/50 border-r-4 border-r-blue-600' : 'hover:bg-slate-50'}`}>
-                                    <div className={`mt-1 p-2 rounded-lg ${progress.includes(l.id) ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'}`}>
-                                        <Icon name={progress.includes(l.id) ? "check" : l.icon} className="w-4 h-4" />
+                        <nav className="w-80 bg-white border-r overflow-y-auto hidden lg:block shadow-sm shrink-0 hide-scrollbar pb-10">
+                            {CHAPTERS.map(chapter => (
+                                <div key={chapter.id}>
+                                    <div className="p-3 border-b bg-slate-100/50 sticky top-0 z-10 backdrop-blur-sm">
+                                        <h2 className="text-xs font-black text-slate-600 tracking-wider">{chapter.title}</h2>
                                     </div>
-                                    <div className="flex-1 overflow-hidden"><div className={`text-sm font-bold truncate ${currentLessonIdx === idx ? 'text-blue-700' : 'text-slate-700'}`}>{l.title}</div><p className="text-xs text-slate-500 mt-0.5 truncate">{l.description}</p></div>
-                                </button>
+                                    {LESSONS.filter(l => l.chapterId === chapter.id).map((l) => {
+                                        const globalIdx = LESSONS.findIndex(lesson => lesson.id === l.id);
+                                        return (
+                                            <button 
+                                                key={l.id} 
+                                                onClick={() => { setCurrentLessonIdx(globalIdx); loadLessonState(globalIdx); }} 
+                                                className={`w-full flex items-start gap-3 p-4 text-left border-b transition-all ${currentLessonIdx === globalIdx ? 'bg-blue-50/80 border-l-4 border-l-blue-600' : 'hover:bg-slate-50 border-l-4 border-l-transparent'}`}
+                                            >
+                                                <div className={`mt-0.5 p-1.5 rounded-lg shrink-0 ${progress.includes(l.id) ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}`}>
+                                                    <Icon name={progress.includes(l.id) ? "check" : l.icon} className="w-4 h-4" />
+                                                </div>
+                                                <div className="flex-1 overflow-hidden">
+                                                    <div className={`text-sm font-bold truncate ${currentLessonIdx === globalIdx ? 'text-blue-700' : 'text-slate-700'}`}>{l.title}</div>
+                                                    <p className="text-[10px] text-slate-500 mt-1 line-clamp-2 leading-relaxed font-medium">{l.description}</p>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
                             ))}
                         </nav>
 
-                        <main className="flex-1 flex flex-col p-6 overflow-y-auto gap-6 bg-slate-50/30">
-                            <div className="max-w-5xl mx-auto w-full space-y-6">
+                        <main className="flex-1 flex flex-col p-6 overflow-y-auto gap-6 bg-slate-50/50 relative custom-scrollbar" onClick={() => setActiveMenu(null)}>
+                            <div className="max-w-5xl mx-auto w-full space-y-6 pb-20">
                                 
                                 {/* 1. Instruction Card */}
                                 <div className="bg-white rounded-3xl shadow-xl border border-white p-8 relative overflow-hidden">
                                     <div className="flex items-start gap-5 relative z-10">
-                                        <div className="bg-blue-600 p-3 rounded-2xl text-white shadow-lg shadow-blue-200">
+                                        <div className="bg-blue-600 p-3 rounded-2xl text-white shadow-lg shadow-blue-200 shrink-0">
                                             <Icon name={lesson.icon} className="w-6 h-6" />
                                         </div>
                                         <div className="flex-1">
                                             <div className="flex items-center justify-between mb-2">
-                                                <h2 className="text-xl font-black text-slate-800"><span className="text-blue-600 mr-2">Step {currentLessonIdx + 1}</span> {lesson.title}</h2>
+                                                <h2 className="text-xl font-black text-slate-800 tracking-tight">{lesson.title}</h2>
                                                 <div className="flex gap-2">
-                                                    <button onClick={() => { if (currentLessonIdx > 0) { const newIdx = currentLessonIdx - 1; setCurrentLessonIdx(newIdx); loadLessonState(newIdx); } }} disabled={currentLessonIdx === 0} className="p-2 rounded-lg border text-xs font-bold hover:bg-slate-50 disabled:opacity-30 transition-all">
-                                                        <Icon name="arrow-left" className="w-3 h-3" />
+                                                    <button onClick={() => { if (currentLessonIdx > 0) { const newIdx = currentLessonIdx - 1; setCurrentLessonIdx(newIdx); loadLessonState(newIdx); } }} disabled={currentLessonIdx === 0} className="p-2 rounded-lg border text-xs font-bold hover:bg-slate-50 disabled:opacity-30 transition-all text-slate-500">
+                                                        <Icon name="arrow-left" className="w-4 h-4" />
                                                     </button>
-                                                    <button onClick={() => loadLessonState(currentLessonIdx)} className="p-2 rounded-lg border text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all">
-                                                        <Icon name="reset" className="w-3 h-3" />
+                                                    <button onClick={() => loadLessonState(currentLessonIdx)} className="p-2 rounded-lg border text-xs font-bold text-slate-500 hover:bg-slate-50 transition-all" title="リセット">
+                                                        <Icon name="reset" className="w-4 h-4" />
                                                     </button>
                                                 </div>
                                             </div>
-                                            <p className="text-slate-600 text-lg leading-relaxed font-medium mb-4 whitespace-pre-wrap">{lesson.content.instruction}</p>
-                                            <div className="flex flex-wrap gap-3 mb-2">
-                                                {showSubmit && !lesson.content.isTutorialStep && (
-                                                    <button onClick={handleSubmitJudge} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl text-sm font-black hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all active:scale-95 flex items-center gap-2">
+                                            <p className="text-slate-600 text-lg leading-relaxed font-medium mb-5 whitespace-pre-wrap">{lesson.content.instruction}</p>
+                                            <div className="flex flex-wrap gap-3">
+                                                {showSubmit && (
+                                                    <button onClick={handleSubmitJudge} className="bg-blue-600 text-white px-6 py-3 rounded-xl text-sm font-black hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all active:scale-95 flex items-center gap-2">
                                                         <Icon name="send" className="w-4 h-4" /> 回答をチェック
                                                     </button>
                                                 )}
-                                                {lesson.content.isTutorialStep && !progress.includes(lesson.id) && (
-                                                    <button onClick={() => { setProgress([...progress, lesson.id]); setFeedback({type: 'success', message: lesson.content.successMessage}); setShowSubmit(false); }} className="bg-green-600 text-white px-6 py-2.5 rounded-xl text-sm font-black hover:bg-green-700 shadow-lg shadow-green-200 transition-all active:scale-95">理解しました！</button>
+                                                {!showSubmit && !progress.includes(lesson.id) && (
+                                                    <button onClick={() => { setProgress([...progress, lesson.id]); setFeedback({type: 'success', message: lesson.content.successMessage}); }} className="bg-green-600 text-white px-6 py-3 rounded-xl text-sm font-black hover:bg-green-700 shadow-lg shadow-green-200 transition-all active:scale-95 flex items-center gap-2">
+                                                        <Icon name="check" className="w-4 h-4" /> 理解しました！
+                                                    </button>
                                                 )}
                                             </div>
                                         </div>
                                     </div>
                                     {feedback.message && (
-                                        <div className={`mt-4 p-5 rounded-2xl flex items-center gap-4 animate-in zoom-in-95 ${feedback.type === 'success' ? 'bg-green-50 text-green-800 border-2 border-green-100' : feedback.type === 'error' ? 'bg-red-50 text-red-800 border-2 border-red-100' : 'bg-blue-50 text-blue-800 border-2 border-blue-100'}`}>
-                                            <Icon name={feedback.type === "success" ? "check" : "alert"} className={`w-6 h-6 ${feedback.type === "success" ? "text-green-500" : "text-red-400"}`} />
+                                        <div className={`mt-5 p-5 rounded-2xl flex items-center gap-4 animate-in zoom-in-95 ${feedback.type === 'success' ? 'bg-green-50 text-green-800 border-2 border-green-100' : feedback.type === 'error' ? 'bg-red-50 text-red-800 border-2 border-red-100' : 'bg-blue-50 text-blue-800 border-2 border-blue-100'}`}>
+                                            <Icon name={feedback.type === "success" ? "check" : "alert"} className={`w-6 h-6 shrink-0 ${feedback.type === "success" ? "text-green-500" : "text-red-400"}`} />
                                             <span className="text-base font-bold flex-1">{feedback.message}</span>
-                                            {feedback.type === 'success' && currentLessonIdx < LESSONS.length - 1 && (<button onClick={() => { const newIdx = currentLessonIdx + 1; setCurrentLessonIdx(newIdx); loadLessonState(newIdx); }} className="bg-green-600 text-white px-6 py-2 rounded-xl text-sm font-black hover:bg-green-700 shadow-lg shadow-green-200 transition-all">次へ進む <Icon name="arrow-right" className="w-4 h-4 ml-1" /></button>)}
+                                            {feedback.type === 'success' && currentLessonIdx < LESSONS.length - 1 && (
+                                                <button onClick={() => { const newIdx = currentLessonIdx + 1; setCurrentLessonIdx(newIdx); loadLessonState(newIdx); }} className="bg-green-600 text-white px-5 py-2 rounded-xl text-sm font-black hover:bg-green-700 shadow-md shadow-green-200 transition-all flex items-center shrink-0">
+                                                    次へ進む <Icon name="arrow-right" className="w-4 h-4 ml-1" />
+                                                </button>
+                                            )}
                                         </div>
                                     )}
-                                    <div className="mt-6 pt-6 border-t flex items-center justify-between">
-                                        <div className="flex gap-3">
-                                            <button onClick={handleCopy} className="flex items-center gap-2 px-5 py-2.5 bg-white border rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 shadow-sm transition-all"><Icon name="copy" className="w-4 h-4" /> コピー</button>
-                                            <button onClick={handleNormalPaste} className="flex items-center gap-2 px-5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-200 transition-all">貼り付け</button>
-                                            <button onClick={handlePasteSpecial} className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 border border-blue-700 rounded-xl text-sm font-black text-white hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all"><Icon name="clipboard" className="w-4 h-4" /> 値のみ貼り付け</button>
-                                        </div>
-                                        <div className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-full flex items-center gap-2">
-                                            <Icon name="info" className="w-3.5 h-3.5" /> ヒント: {lesson.content.hint}
-                                        </div>
-                                    </div>
                                 </div>
 
-                                {/* 2. Explanation / Advice Panels (ABOVE SHEET) */}
+                                {/* 2. Explanation / Advice Panels */}
                                 <div className="space-y-6">
                                     {lesson.content.syntax && (
-                                        <div className="bg-white border rounded-3xl p-6 border-blue-100 shadow-sm animate-in fade-in">
+                                        <div className="bg-white border rounded-3xl p-6 border-blue-100 shadow-sm">
                                             <h3 className="text-sm font-bold text-blue-700 mb-4 flex items-center gap-2"><Icon name="book" className="w-5 h-5" /> {lesson.content.syntax.name}</h3>
-                                            <div className="bg-slate-900 p-4 rounded-xl font-mono text-lg text-green-400 mb-4 shadow-inner">{lesson.content.syntax.formula}</div>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="bg-slate-900 p-4 rounded-xl font-mono text-base text-green-400 mb-4 shadow-inner overflow-x-auto whitespace-nowrap custom-scrollbar pb-2">{lesson.content.syntax.formula}</div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                 {lesson.content.syntax.details.map((d, i) => (
                                                     <div key={i} className="flex items-start gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
                                                         <span className="bg-blue-600 text-white text-[10px] font-black px-2 py-1 rounded-md uppercase shrink-0 mt-0.5">{d.label}</span>
-                                                        <span className="text-sm text-slate-700 font-medium leading-relaxed">{d.desc}</span>
+                                                        <span className="text-xs text-slate-700 font-medium leading-relaxed pt-0.5">{d.desc}</span>
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
                                     )}
 
-                                    <div className="grid md:grid-cols-2 gap-6">
+                                    <div className="grid md:grid-cols-2 gap-4">
                                         {lesson.content.footerAdvice && lesson.content.footerAdvice.map((advice, i) => (
-                                            <div key={i} className={`bg-gradient-to-br border rounded-3xl p-6 shadow-sm ${i === 0 ? 'from-indigo-50 to-blue-50 border-indigo-100' : 'from-amber-50 to-orange-50 border-amber-100'}`}>
-                                                <h3 className={`font-black flex items-center gap-2 mb-3 ${i === 0 ? 'text-indigo-900' : 'text-amber-900'}`}>
-                                                    <Icon name={advice.icon} className="w-5 h-5" /> {advice.title}
+                                            <div key={i} className={`bg-gradient-to-br border rounded-3xl p-5 shadow-sm ${i === 0 ? 'from-indigo-50 to-blue-50 border-indigo-100' : 'from-amber-50 to-orange-50 border-amber-100'}`}>
+                                                <h3 className={`font-black flex items-center gap-2 mb-2 text-sm ${i === 0 ? 'text-indigo-900' : 'text-amber-900'}`}>
+                                                    <Icon name={advice.icon} className="w-4 h-4" /> {advice.title}
                                                 </h3>
                                                 <p className={`text-xs leading-relaxed font-medium ${i === 0 ? 'text-indigo-800/80' : 'text-amber-800/80'}`}>{advice.desc}</p>
                                             </div>
@@ -654,40 +1209,201 @@
                                 </div>
 
                                 {/* 3. Spreadsheet Container */}
-                                <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden mb-12">
-                                    <div className="bg-slate-50 border-b px-6 py-3 flex items-center justify-between">
+                                <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden mt-8 flex flex-col">
+                                    <div className="bg-slate-100 border-b px-4 py-2 flex items-center justify-between shrink-0">
                                         <div className="flex gap-1.5"><div className="w-3 h-3 rounded-full bg-red-400"></div><div className="w-3 h-3 rounded-full bg-yellow-400"></div><div className="w-3 h-3 rounded-full bg-green-400"></div></div>
-                                        <div className="text-[10px] font-black font-mono text-slate-400 uppercase tracking-widest">Cell: <span className="text-blue-600">{activeCell}</span> | 編集: <span className="text-slate-600 italic">Enter, ダブルクリック, F2 / ショートカット: Ctrl+C, Ctrl+V, Ctrl+Shift+V対応</span></div>
+                                        <div className="text-[10px] font-black text-slate-500 flex gap-4">
+                                            <span><span className="text-slate-400 font-mono">CELL:</span> <span className="text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded font-mono">{activeCell}</span></span>
+                                        </div>
                                     </div>
-                                    <div className="overflow-x-auto overflow-y-visible">
-                                        <table className="w-full border-collapse table-fixed">
-                                            <thead><tr className="bg-slate-50/80"><th className="border p-2 text-[10px] text-slate-400 w-12 font-black border-slate-200"></th>{cols.map(c => <th key={c} className="border p-2 text-[10px] text-slate-400 font-black uppercase border-slate-200">{c}</th>)}</tr></thead>
-                                            <tbody>{rows.map(r => (<tr key={r}><td className="bg-slate-50/80 border p-2 text-[10px] text-slate-400 font-black text-center border-slate-200">{r}</td>{cols.map(c => {
-                                                const id = `${c}${r}`; 
-                                                const isEditingThis = isEditing && activeCell === id; 
-                                                const result = evaluateFormula(gridData[id] || '', gridData); 
-                                                const displayVal = result.value; 
-                                                const isNumber = !isNaN(displayVal) && displayVal !== '' && typeof displayVal !== 'boolean'; 
-                                                return (
-                                                    <td key={id} onClick={() => handleCellClick(id)} className={getCellStyles(id) + " group"}>
-                                                        {isEditingThis ? (
-                                                            <input ref={inputRef} type="text" className="w-full h-full px-2 border-none outline-none bg-white font-mono text-sm" value={editValue} onChange={(e) => setEditValue(e.target.value)} onBlur={commitEdit} />
-                                                        ) : (
-                                                            <div className={`px-2 py-2 truncate w-full h-full ${isNumber ? 'text-right' : 'text-left'}`}>
-                                                                {displayVal}
-                                                                {result.error && (<div className="absolute top-0 right-0 w-0 h-0 border-t-[6px] border-t-red-500 border-l-[6px] border-l-transparent z-10"></div>)}
-                                                                {result.error && ( 
-                                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl">
-                                                                        <p className="font-bold border-b border-slate-600 pb-1 mb-1">{result.value} エラー</p>
-                                                                        {result.error}
-                                                                    </div> 
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                        {activeCell === id && !isEditing && (<div className="absolute bottom-[-2px] right-[-2px] w-1.5 h-1.5 bg-blue-600 border border-white z-20"></div>)}
-                                                    </td>
-                                                );
-                                            })}</tr>))}</tbody>
+                                    
+                                    {/* Toolbar Menu */}
+                                    <div className="bg-slate-50 border-b px-2 py-1 flex gap-1 text-sm text-slate-700 relative z-[45] shrink-0" onClick={e => e.stopPropagation()}>
+                                        <button onClick={handleUndo} className="p-1.5 hover:bg-slate-200 rounded text-slate-600 transition-colors shrink-0 flex items-center gap-1" title="元に戻す (Ctrl+Z)"><Icon name="undo" className="w-4 h-4" /> <span className="text-xs font-bold">戻る</span></button>
+                                        <div className="w-px h-5 bg-slate-300 my-auto mx-1"></div>
+                                        <button onClick={handleCopy} className="p-1.5 hover:bg-slate-200 rounded text-slate-600 transition-colors shrink-0 flex items-center gap-1" title="コピー (Ctrl+C)"><Icon name="copy" className="w-4 h-4" /> <span className="text-xs font-bold">コピー</span></button>
+                                        <button onClick={handleNormalPaste} className="p-1.5 hover:bg-slate-200 rounded text-slate-600 transition-colors text-xs font-bold shrink-0" title="貼り付け (Ctrl+V)">貼付</button>
+                                        <button onClick={handlePasteSpecial} className="p-1.5 hover:bg-slate-200 rounded text-blue-600 transition-colors text-xs font-bold flex items-center gap-1 shrink-0" title="値のみ貼り付け (Ctrl+Shift+V)"><Icon name="clipboard" className="w-3 h-3" />値のみ</button>
+                                        
+                                        <div className="w-px h-5 bg-slate-300 my-auto mx-1"></div>
+
+                                        <div className="relative">
+                                            <button onClick={() => toggleMenu('view')} className={`px-3 py-1.5 rounded transition-colors text-xs font-bold ${activeMenu === 'view' ? 'bg-slate-200' : 'hover:bg-slate-200'}`}>表示</button>
+                                            {activeMenu === 'view' && (
+                                                <div className="absolute top-full left-0 mt-1 w-32 bg-white border shadow-xl rounded-lg py-1 z-50">
+                                                    <div className="px-4 py-2 hover:bg-slate-100 cursor-pointer text-xs font-bold" onClick={() => freezeRow(1)}>固定 ＞ 1行</div>
+                                                    <div className="px-4 py-2 hover:bg-slate-100 cursor-pointer text-xs font-bold" onClick={() => freezeCol('A')}>固定 ＞ 1列</div>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="relative">
+                                            <button onClick={() => toggleMenu('format')} className={`px-3 py-1.5 rounded flex items-center gap-1 font-mono text-xs font-bold transition-colors ${activeMenu === 'format' ? 'bg-slate-200' : 'hover:bg-slate-200'}`}>123 <Icon name="chevron-down" className="w-3 h-3"/></button>
+                                            {activeMenu === 'format' && (
+                                                <div className="absolute top-full left-0 mt-1 w-40 bg-white border shadow-xl rounded-lg py-1 z-50">
+                                                    <div className="px-4 py-2 hover:bg-slate-100 cursor-pointer text-xs font-bold" onClick={() => applyFormat('currency')}>通貨 (¥1,000)</div>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="relative">
+                                            <button onClick={() => toggleMenu('data')} className={`px-3 py-1.5 rounded transition-colors text-xs font-bold ${activeMenu === 'data' ? 'bg-slate-200' : 'hover:bg-slate-200'}`}>データ</button>
+                                            {activeMenu === 'data' && (
+                                                <div className="absolute top-full left-0 mt-1 w-64 bg-white border shadow-xl rounded-lg py-1 z-50">
+                                                    <div className="px-4 py-2 hover:bg-slate-100 cursor-pointer text-xs font-bold flex items-center gap-2" onClick={() => toggleFilter()}><Icon name="filter" className="w-3 h-3"/> フィルタを作成</div>
+                                                    <div className="px-4 py-2 hover:bg-slate-100 cursor-pointer text-xs font-bold flex items-center gap-2" onClick={() => createFilterView()}><Icon name="filter" className="w-3 h-3 text-slate-400"/> フィルタ表示 ＞ 新規作成</div>
+                                                    {sheetState.savedFilterViews.length > 0 && (
+                                                        <>
+                                                            <div className="border-t my-1 border-slate-100"></div>
+                                                            {sheetState.savedFilterViews.map(fv => (
+                                                                <div key={fv.name} className="px-4 py-2 hover:bg-slate-100 cursor-pointer text-xs font-bold flex items-center gap-2" onClick={() => loadFilterView(fv.name)}>
+                                                                    <div className="w-3 h-3 bg-slate-800 rounded-sm"></div> {fv.name}
+                                                                </div>
+                                                            ))}
+                                                        </>
+                                                    )}
+                                                    <div className="border-t my-1 border-slate-100"></div>
+                                                    <div className="px-4 py-2 hover:bg-slate-100 cursor-pointer text-xs font-bold flex items-center gap-2" onClick={() => applyDataValidation()}><Icon name="list-checks" className="w-3 h-3"/> データの入力規則</div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Filter View Header */}
+                                    {sheetState.filterViewMode && (
+                                        <div className="bg-slate-800 text-white px-4 py-1.5 flex items-center justify-between shrink-0 text-sm">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-bold text-xs">名前:</span>
+                                                <input 
+                                                    type="text" 
+                                                    className="bg-slate-700 border border-slate-600 rounded px-2 py-0.5 text-xs outline-none focus:border-blue-400 w-48 font-bold"
+                                                    value={sheetState.filterViewName}
+                                                    onChange={e => setSheetState({...sheetState, filterViewName: e.target.value})}
+                                                    onBlur={saveFilterView}
+                                                    onKeyDown={e => { e.stopPropagation(); if(e.key === 'Enter') saveFilterView(); }}
+                                                />
+                                            </div>
+                                            <button onClick={closeFilterView} className="hover:bg-slate-700 p-1 rounded transition-colors"><Icon name="close" className="w-4 h-4" /></button>
+                                        </div>
+                                    )}
+
+                                    {/* Scrollable Table Area */}
+                                    <div className={`overflow-auto custom-scrollbar max-h-[350px] relative bg-white ${sheetState.filterViewMode ? 'border-4 border-slate-800' : ''}`}>
+                                        <table className="w-full border-collapse table-fixed bg-white">
+                                            <thead>
+                                                <tr className="bg-slate-100">
+                                                    <th className={`border-b border-r p-2 bg-slate-100 w-12 sticky top-0 left-0 z-[60]`}></th>
+                                                    {cols.map(c => {
+                                                        const isFixedCol = sheetState.frozenCol === c;
+                                                        const isFixedRightClass = isFixedCol ? 'left-[48px] z-[50] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]' : 'z-[40]';
+                                                        return (
+                                                            <th key={c} className={`border-b border-r p-2 bg-slate-100 text-[10px] text-slate-400 font-black uppercase sticky top-0 ${isFixedRightClass}`} style={{ width: '90px', minWidth: '90px' }}>
+                                                                <div className="flex items-center justify-between">
+                                                                    <span>{c}</span>
+                                                                </div>
+                                                            </th>
+                                                        );
+                                                    })}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {visibleRows.map(r => (
+                                                    <tr key={r}>
+                                                        <td className={`border-b border-r p-2 text-[10px] text-slate-400 font-black text-center bg-slate-50 sticky left-0 ${sheetState.frozenRow >= r ? 'top-[33px] z-[50] shadow-[0_2px_5px_-2px_rgba(0,0,0,0.1)]' : 'z-[30]'}`}>{r}</td>
+                                                        {cols.map(c => {
+                                                            const id = `${c}${r}`; 
+                                                            const isEditingThis = isEditing && activeCell === id; 
+                                                            const result = evaluateFormula(gridData[id] || '', gridData); 
+                                                            const format = cellFormats[id];
+                                                            
+                                                            let displayVal = result.value; 
+                                                            const isNumberRaw = !isNaN(displayVal) && displayVal !== '' && typeof displayVal !== 'boolean' && !displayVal.includes('/'); 
+                                                            
+                                                            if (format === 'currency' && isNumberRaw) {
+                                                                displayVal = '¥' + parseInt(displayVal).toLocaleString();
+                                                            }
+
+                                                            const isFixedCol = sheetState.frozenCol === c;
+                                                            const isFixedRow = sheetState.frozenRow >= r;
+                                                            
+                                                            // z-indexの計算（ドロップダウンを開いているセルを最前面にする）
+                                                            let zIndexClass = "z-10";
+                                                            if (isFixedCol && isFixedRow) zIndexClass = "z-[40]";
+                                                            else if (isFixedCol || isFixedRow) zIndexClass = "z-[20]";
+                                                            
+                                                            if (activeMenu === `dropdown-${id}`) {
+                                                                zIndexClass = "z-[100]";
+                                                            } else if (activeCell === id) {
+                                                                zIndexClass = "z-[60]";
+                                                            }
+
+                                                            let posClass = `relative bg-white ${zIndexClass}`;
+                                                            if (isFixedCol && isFixedRow) posClass += " sticky left-[48px] top-[33px] shadow-[2px_2px_5px_-2px_rgba(0,0,0,0.1)]";
+                                                            else if (isFixedCol) posClass += " sticky left-[48px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]";
+                                                            else if (isFixedRow) posClass += " sticky top-[33px] shadow-[0_2px_5px_-2px_rgba(0,0,0,0.1)]";
+
+                                                            // Validation format bg
+                                                            if (format === 'validation') posClass += ' hover:bg-slate-50';
+                                                            if (id === 'C3' && format === 'special-target') posClass += ' bg-orange-50';
+                                                            if (id === 'C2' && format === 'conditional-green' && isNumberRaw && parseFloat(displayVal) >= 80) posClass += ' bg-green-100';
+
+                                                            return (
+                                                                <td key={id} onClick={() => handleCellClick(id)} onDoubleClick={() => { setActiveCell(id); setIsEditing(true); setEditValue(gridData[id] || ''); }} className={`border-b border-r p-0 h-[32px] cursor-cell text-sm ${posClass} group`}>
+                                                                    {/* Active Ring */}
+                                                                    {activeCell === id && !isEditing && <div className="absolute inset-[-1px] border-2 border-blue-500 z-50 pointer-events-none"></div>}
+                                                                    
+                                                                    {isEditingThis ? (
+                                                                        <input ref={inputRef} type="text" className="absolute inset-0 w-full h-full px-2 border-none outline-none bg-white font-mono text-sm z-50" value={editValue} onChange={(e) => setEditValue(e.target.value)} onBlur={commitEdit} />
+                                                                    ) : (
+                                                                        <>
+                                                                            <div className={`px-2 py-1.5 truncate w-full h-full relative ${isNumberRaw ? 'text-right' : 'text-left'} ${format === 'special-target' ? 'text-orange-900 border-2 border-orange-400' : ''} ${(id==='C2'||format==='conditional-green') && isNumberRaw && parseFloat(displayVal)>=80 ? 'text-green-800 font-bold' : ''}`}>
+                                                                                {displayVal}
+                                                                                
+                                                                                {/* Filter Icon on Row 1 */}
+                                                                                {r === 1 && sheetState.hasFilter && (
+                                                                                    <div className="absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer hover:bg-slate-200 p-0.5 rounded z-30" onClick={(e) => { e.stopPropagation(); openFilterModal(c); }}>
+                                                                                        <Icon name="filter" className={`w-3.5 h-3.5 ${sheetState.filterViewMode ? 'text-slate-800' : 'text-green-700'}`} />
+                                                                                    </div>
+                                                                                )}
+
+                                                                                {/* Validation Dropdown Icon */}
+                                                                                {format === 'validation' && (
+                                                                                    <div className="absolute right-1 top-1/2 -translate-y-1/2 bg-slate-100 rounded-full p-0.5 border border-slate-200 shadow-sm cursor-pointer hover:bg-slate-200 z-30"
+                                                                                         onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === `dropdown-${id}` ? null : `dropdown-${id}`); setActiveCell(id); setIsEditing(false); }}>
+                                                                                        <Icon name="chevron-down" className="w-3 h-3 text-slate-500" />
+                                                                                    </div>
+                                                                                )}
+
+                                                                                {/* Error Triangle */}
+                                                                                {result.error && (<div className="absolute top-0 right-0 w-0 h-0 border-t-[6px] border-t-red-500 border-l-[6px] border-l-transparent z-10"></div>)}
+                                                                            </div>
+
+                                                                            {/* Validation Dropdown Menu */}
+                                                                            {format === 'validation' && activeCell === id && activeMenu === `dropdown-${id}` && validationOptions[id] && (
+                                                                                <div className="absolute top-full left-[-1px] w-[calc(100%+2px)] bg-white border border-slate-300 shadow-lg z-[100] rounded-b-md overflow-hidden" onClick={e=>e.stopPropagation()}>
+                                                                                    {validationOptions[id].map(opt => (
+                                                                                        <div key={opt} className="px-3 py-1.5 text-xs hover:bg-blue-50 cursor-pointer border-b last:border-b-0 border-slate-100 text-left text-slate-900" 
+                                                                                            onClick={(e) => { e.stopPropagation(); historyRef.current.push({...gridData}); setGridData(prev=>({...prev, [id]: opt})); setActiveMenu(null); setIsEditing(false); }}>
+                                                                                            {opt}
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+                                                                            )}
+
+                                                                            {/* Error Tooltip */}
+                                                                            {result.error && ( 
+                                                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-xl z-[100]">
+                                                                                    <p className="font-bold border-b border-slate-600 pb-1 mb-1">{result.value} エラー</p>
+                                                                                    {result.error}
+                                                                                </div> 
+                                                                            )}
+                                                                        </>
+                                                                    )}
+                                                                    {activeCell === id && !isEditing && (<div className="absolute bottom-[-2px] right-[-2px] w-1.5 h-1.5 bg-blue-600 border border-white z-20"></div>)}
+                                                                </td>
+                                                            );
+                                                        })}
+                                                    </tr>
+                                                ))}
+                                            </tbody>
                                         </table>
                                     </div>
                                 </div>
